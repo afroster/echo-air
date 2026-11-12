@@ -9,7 +9,7 @@ const { startPairing, active } = require('./pair');
 const app = express();
 
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public/index.html')));
 
 const requests = new Map();
 const REQUEST_TIMEOUT = 15 * 60 * 1000;
