@@ -576,8 +576,383 @@ main {
 
 <script>
 
-    
-        
+const receiveCheckbox = document.getElementById('receiveSession');
+const notice = document.getElementById('sessionNotice');
+const noticeText = document.getElementById('noticeText');
+
+let requestId = null;
+let currentValue = '';
+let pollTimer = null;
+let polling = false;
+let currentMethod = null;
+
+receiveCheckbox.addEventListener('change', () => {
+    const enabled = receiveCheckbox.checked;
+
+    notice.classList.toggle('success', enabled);
+    notice.classList.toggle('warning', !enabled);
+
+    notice.querySelector('.notice-icon').textContent =
+        enabled ? '✓' : '!';
+
+    noticeText.textContent = enabled
+        ? 'Your session ID will be sent to your WhatsApp number after successful connection'
+        : 'You will not receive the session ID on WhatsApp, so copy it from here';
+});
+
+function showPage(id) {
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+
+    document.getElementById(id).classList.add('active');
+}
+
+function openPairing() {
+    resetRequest();
+    showPage('pairPage');
+}
+
+function openQR() {
+    resetRequest();
+    showPage('qrPage');
+    startQR();
+}
+
+function goHome() {
+    stopPolling();
+    showPage('homePage');
+}
+
+function stopPolling() {
+    if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+    }
+
+    polling = false;
+}
+
+function resetRequest() {
+    stopPolling();
+
+    requestId = null;
+    currentValue = '';
+    currentMethod = null;
+
+    const codeBox = document.getElementById('codeBox');
+    const qrBox = document.getElementById('qrBox');
+
+    codeBox.style.display = 'none';
+    qrBox.style.display = 'none';
+
+    document.getElementById('codeValue').textContent = '';
+
+    const copyButton = codeBox.querySelector('.copy-btn');
+    copyButton.textContent = 'Copy Code';
+
+    resetButton();
+}
+
+function resetButton() {
+    polling = false;
+
+    const button = document.getElementById('generateBtn');
+
+    button.disabled = false;
+    button.textContent = 'Generate Pairing Code';
+}
+
+async function createRequest(endpoint, body) {
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error || 'Unable to start connection');
+    }
+
+    requestId = data.id;
+    polling = true;
+
+    checkStatus();
+
+    return data;
+}
+
+async function startPairing() {
+    const number = document.getElementById('phone').value.trim();
+    const status = document.getElementById('status');
+    const button = document.getElementById('generateBtn');
+
+    if (!/^\+?\d{7,15}$/.test(number)) {
+        status.textContent =
+            'Please enter a valid phone number with country code';
+        return;
+    }
+
+    if (polling) return;
+
+    resetRequest();
+
+    currentMethod = 'pair';
+
+    button.disabled = true;
+    button.textContent = 'Generating...';
+
+    status.textContent = 'Starting WhatsApp connection...';
+
+    try {
+        await createRequest('/api/pair', {
+            number,
+            receiveSession: receiveCheckbox.checked
+        });
+
+        status.textContent = 'Waiting for WhatsApp pairing code...';
+
+    } catch (error) {
+        status.textContent = error.message;
+        resetButton();
+    }
+}
+
+async function startQR() {
+    const status = document.getElementById('qrStatus');
+    const box = document.getElementById('qrBox');
+
+    if (polling) return;
+
+    resetRequest();
+
+    currentMethod = 'qr';
+
+    status.textContent = 'Generating your QR code...';
+    box.style.display = 'none';
+
+    try {
+        await createRequest('/api/qr', {
+            receiveSession: receiveCheckbox.checked
+        });
+
+    } catch (error) {
+        status.textContent = error.message;
+        stopPolling();
+    }
+}
+
+async function checkStatus() {
+    if (!requestId || !polling) return;
+    const id = requestId;
+    try {
+        const response = await fetch(
+            '/api/status/' + encodeURIComponent(id)
+        );
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Connection request expired');
+        }
+
+        if (id !== requestId) return;
+
+        if (currentMethod === 'pair') {
+            await handlePairStatus(data);
+        } else {
+            await handleQRStatus(data);
+        }
+
+        if (
+            data.status === 'connected' ||
+            data.status === 'error' ||
+            data.status === 'stopped'
+        ) {
+            stopPolling();
+
+            if (currentMethod === 'pair') {
+                resetButton();
+            }
+
+            return;
+        }
+
+        if (data.status === 'disconnected') {
+            throw new Error('WhatsApp disconnected. Please try again');
+        }
+
+        pollTimer = setTimeout(checkStatus, 2000);
+
+    } catch (error) {
+        if (id !== requestId) return;
+
+        if (currentMethod === 'pair') {
+            document.getElementById('status').textContent =
+                error.message;
+            resetButton();
+        } else {
+            document.getElementById('qrStatus').textContent =
+                error.message;
+        }
+
+        stopPolling();
+        requestId = null;
+    }
+}
+
+async function handlePairStatus(data) {
+    const status = document.getElementById('status');
+    const box = document.getElementById('codeBox');
+    const value = document.getElementById('codeValue');
+    const title = document.getElementById('codeTitle');
+
+    if (data.status === 'waiting' && data.code) {
+        title.textContent = 'YOUR PAIRING CODE';
+
+        currentValue = data.code;
+        value.textContent = data.code;
+
+        box.style.display = 'block';
+
+        box.querySelector('.copy-btn').textContent = 'Copy Code';
+
+        status.textContent =
+            'Enter this code in WhatsApp Linked Devices';
+
+        return;
+    }
+
+    if (data.status === 'connected') {
+        box.style.display = 'block';
+
+        if (data.sessionId) {
+            title.textContent = 'YOUR SESSION ID';
+
+            currentValue = data.sessionId;
+            value.textContent = data.sessionId;
+
+            box.querySelector('.copy-btn').textContent =
+                'Copy Session ID';
+
+            status.textContent =
+                'WhatsApp connected successfully! Your session is ready';
+        } else if (data.delivered) {
+            title.textContent = 'SESSION SENT';
+
+            currentValue = '';
+            value.textContent = 'Successfully sent to WhatsApp';
+
+            box.querySelector('.copy-btn').style.display = 'none';
+
+            status.textContent =
+                'WhatsApp connected successfully. Check your WhatsApp messages';
+        } else {
+            status.textContent =
+                'WhatsApp connected successfully';
+        }
+
+        return;
+    }
+
+    if (data.status === 'connecting') {
+        status.textContent = 'Connecting to WhatsApp...';
+    }
+}
+
+async function handleQRStatus(data) {
+    const status = document.getElementById('qrStatus');
+    const box = document.getElementById('qrBox');
+
+    if (data.status === 'waiting' && data.qr) {
+        box.style.display = 'block';
+
+        box.innerHTML = `
+            <h4 style="margin-bottom:20px;color:#aab5cb">
+                SCAN THIS QR CODE
+            </h4>
+            <img
+                src="${data.qr}"
+                alt="WhatsApp QR Code"
+                style="
+                    display:block;
+                    width:100%;
+                    max-width:280px;
+                    margin:auto;
+                    padding:12px;
+                    background:white;
+                    border-radius:12px;
+                "
+            >
+        `;
+
+        status.textContent =
+            'Open WhatsApp, select Linked Devices, then scan this QR code';
+
+        return;
+    }
+
+    if (data.status === 'connected') {
+        box.style.display = 'none';
+
+        if (data.delivered) {
+            status.textContent =
+                'Connected successfully! Your session ID has been sent to WhatsApp';
+        } else if (data.sessionId) {
+            currentValue = data.sessionId;
+
+            box.style.display = 'block';
+
+            box.innerHTML = `
+                <h4>YOUR SESSION ID</h4>
+                <div class="code-value">${data.sessionId}</div>
+                <button class="copy-btn" onclick="copyResult()">
+                    Copy Session ID
+                </button>
+            `;
+
+            status.textContent = 'WhatsApp connected successfully';
+        }
+
+        return;
+    }
+
+    if (data.status === 'connecting') {
+        status.textContent = 'Connecting to WhatsApp...';
+    }
+}
+
+
+async function c_res() {
+    if (!currentValue) return;
+
+    try {
+        await navigator.clipboard.writeText(currentValue);
+
+        const button = document.querySelector(
+            currentMethod === 'pair'
+                ? '#codeBox .copy-btn'
+                : '#qrBox .copy-btn'
+        );
+
+        if (!button) return;
+
+        const original = button.textContent;
+
+        button.textContent = 'Copied Successfully';
+
+        setTimeout(() => {
+            button.textContent = original;
+        }, 2000);
+
+    } catch {
+        alert('Unable to copy. Please copy manually');
+    }
+}
+           
         
 </script>
 
