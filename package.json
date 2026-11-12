@@ -12,6 +12,7 @@
     "@whiskeysockets/baileys": "^7.0.0-rc14",
     "awesome-phonenumber": "^7.8.0",
     "axios": "^1.13.2",
+    "dotenv": "^16.4.5",
     "express": "^5.1.0",
     "qrcode": "^1.5.4"
    }
