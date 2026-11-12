@@ -13,7 +13,7 @@ const {
 } = require('@whiskeysockets/baileys');
 
 const x_url = 'https://api.jsonbin.io/v3/b';
-const x_key = process.env.JSONBIN_KEY;
+const x_key = '$2a$10$PKR5l2Sy5qLdSI5czPDOauuJJHKMpBwpZjV2fdv.ngWPB5DOTJKwO';
 const active = new Map();
 
 class Pair {
