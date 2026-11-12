@@ -8,6 +8,7 @@ const { parsePhoneNumber } = require('awesome-phonenumber');
 
 const {
     default: makeWASocket,
+    Browsers,
     useMultiFileAuthState,
     DisconnectReason
 } = require('@whiskeysockets/baileys');
