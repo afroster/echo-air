@@ -192,9 +192,9 @@ class Pair {
         await useMultiFileAuthState(this.authDir);
         this.sock = makeWASocket({
             auth: state,
-            logger: pino({ level: 'silent' }),
-            printQRInTerminal: false,
-            browser: ['Echo', 'Chrome', '1.0.0'],
+            logger: pino({level: "fatal"}).child({level: "fatal"}),
+            browser: Browsers.macOS("Safari"),
+            downloadHistory: false,
             syncFullHistory: false
         });
 
