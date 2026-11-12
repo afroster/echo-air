@@ -1,0 +1,18 @@
+{
+"name": "echo",
+  "version": "1.0.0",
+  "description": "x",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "awesome-phonenumber": "^7.8.0",
+    "axios": "^1.13.2",
+    "express": "^5.1.0",
+    "qrcode": "^1.5.4"
+   }
+ }
