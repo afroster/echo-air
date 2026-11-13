@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#090b12">
-<title>pair</title>
+<title>ECHO | WhatsApp Pairing</title>
 
 <style>
 * {
@@ -17,7 +17,6 @@
 :root {
     --bg: #090b12;
     --panel: #141722;
-    --card: #202535;
     --border: #30394d;
     --muted: #929db2;
     --purple: #7774ff;
@@ -55,7 +54,6 @@ header {
     border: none;
     color: white;
     font-size: 29px;
-    cursor: pointer;
 }
 
 .header-side {
@@ -83,14 +81,8 @@ main {
 }
 
 @keyframes appear {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .hero {
@@ -282,10 +274,6 @@ main {
     margin-bottom: 35px;
 }
 
-.back:hover {
-    color: white;
-}
-
 .form-card {
     padding: 25px;
     background: #1c2130;
@@ -327,12 +315,6 @@ main {
     font-size: 17px;
     font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 8px 25px #5555ff30;
-    transition: .2s;
-}
-
-.primary-btn:hover {
-    filter: brightness(1.12);
 }
 
 .primary-btn:disabled {
@@ -403,34 +385,28 @@ main {
     display: none !important;
 }
 
+.qr-image {
+    display: block;
+    width: 100%;
+    max-width: 280px;
+    margin: auto;
+    padding: 12px;
+    background: white;
+    border-radius: 12px;
+}
+
 @media(max-width: 420px) {
-    main {
-        padding: 30px 22px 45px;
-    }
-
-    .method {
-        padding: 20px;
-        gap: 17px;
-    }
-
-    .method h3 {
-        font-size: 19px;
-    }
-
-    .method p {
-        font-size: 13px;
-    }
-
+    main { padding: 30px 22px 45px; }
+    .method { padding: 20px; gap: 17px; }
+    .method h3 { font-size: 19px; }
+    .method p { font-size: 13px; }
     .method-icon {
         width: 55px;
         height: 55px;
         min-width: 55px;
         font-size: 29px;
     }
-
-    .receive {
-        font-size: 19px;
-    }
+    .receive { font-size: 19px; }
 }
 </style>
 </head>
@@ -445,146 +421,120 @@ main {
 
 <main>
 
-    <section class="page active" id="homePage">
+<section class="page active" id="homePage">
+    <div class="hero">
+        <div class="hero-icon">E</div>
+        <h1>Connect WhatsApp</h1>
+        <p>Securely connect your WhatsApp account<br>and generate your personal session</p>
+    </div>
 
-        <div class="hero">
-            <div class="hero-icon">E</div>
-            <h1>Connect WhatsApp</h1>
-            <p>Securely connect your WhatsApp account<br>and generate your personal session</p>
-        </div>
+    <label class="receive">
+        <input type="checkbox" id="receiveSession">
+        <span>Receive Session on WhatsApp</span>
+    </label>
 
-        <label class="receive">
-            <input type="checkbox" id="receiveSession">
-            <span>Receive Session on WhatsApp</span>
-        </label>
+    <div class="section-title">Select Connection Method</div>
 
-        <div class="section-title">
-            Select Connection Method
-        </div>
-
-        <div class="methods">
-
-            <button class="method" onclick="openQR()">
-                <div class="method-icon">▦</div>
-                <div>
-                    <h3>QR Code</h3>
-                    <p>Scan with WhatsApp</p>
-                </div>
-                <span class="arrow">›</span>
-            </button>
-
-            <button class="method" onclick="openPairing()">
-                <div class="method-icon">▢</div>
-                <div>
-                    <h3>Pairing Code</h3>
-                    <p>Use Phone Number</p>
-                </div>
-                <span class="arrow">›</span>
-            </button>
-
-        </div>
-
-        <div class="notice warning" id="sessionNotice">
-            <div class="notice-icon">!</div>
-            <div id="noticeText">
-                You will not receive the session ID on WhatsApp, so copy it from here
+    <div class="methods">
+        <button class="method" onclick="openQR()">
+            <div class="method-icon">▦</div>
+            <div>
+                <h3>QR Code</h3>
+                <p>Scan with WhatsApp</p>
             </div>
-        </div>
-
-    </section>
-
-    <section class="page" id="pairPage">
-
-        <button class="back" onclick="goHome()">
-            ← Back
+            <span class="arrow">›</span>
         </button>
 
-        <div class="hero">
-            <div class="hero-icon">▢</div>
-            <h1>Pairing Code</h1>
-            <p>Enter your WhatsApp number to generate<br>a secure pairing code</p>
-        </div>
-
-        <div class="form-card">
-
-            <label for="phone">WhatsApp Phone Number</label>
-
-            <input
-                type="tel"
-                class="phone-input"
-                id="phone"
-                placeholder="27XXXXXXXXX"
-                autocomplete="tel"
-            >
-
-            <button
-                class="primary-btn"
-                id="generateBtn"
-                onclick="startPairing()"
-            >
-                Generate Pairing Code
-            </button>
-
-        </div>
-
-        <div class="status" id="status">
-            Your pairing code will appear here
-        </div>
-
-        <div class="code-box" id="codeBox">
-            <h4 id="codeTitle">YOUR PAIRING CODE</h4>
-            <div class="code-value" id="codeValue"></div>
-
-            <button class="copy-btn" onclick="c_res()">
-                Copy Code
-            </button>
-        </div>
-
-        <div class="info">
-            <strong>How to connect</strong><br>
-            1. Open WhatsApp on your phone.<br>
-            2. Go to Linked Devices.<br>
-            3. Select Link a Device.<br>
-            4. Choose Link with phone number instead.<br>
-            5. Enter the pairing code shown here.
-        </div>
-
-    </section>
-
-    <section class="page" id="qrPage">
-
-        <button class="back" onclick="goHome()">
-            ← Back
-        </button>
-
-        <div class="hero">
-            <div class="hero-icon">▦</div>
-            <h1>QR Connection</h1>
-            <p>Connect your WhatsApp account by scanning<br>the QR code</p>
-        </div>
-
-        <div class="form-card">
-            <div class="status" id="qrStatus">
-                QR connection backend is not yet connected
+        <button class="method" onclick="openPairing()">
+            <div class="method-icon">▢</div>
+            <div>
+                <h3>Pairing Code</h3>
+                <p>Use Phone Number</p>
             </div>
-            <div class="code-box" id="qrBox"></div>
-        </div>
+            <span class="arrow">›</span>
+        </button>
+    </div>
 
-    </section>
+    <div class="notice warning" id="sessionNotice">
+        <div class="notice-icon">!</div>
+        <div id="noticeText">
+            You will not receive the session ID on WhatsApp, so copy it from here
+        </div>
+    </div>
+</section>
+
+<section class="page" id="pairPage">
+    <button class="back" onclick="goHome()">← Back</button>
+
+    <div class="hero">
+        <div class="hero-icon">▢</div>
+        <h1>Pairing Code</h1>
+        <p>Enter your WhatsApp number to generate<br>a secure pairing code</p>
+    </div>
+
+    <div class="form-card">
+        <label for="phone">WhatsApp Phone Number</label>
+        <input type="tel" class="phone-input" id="phone"
+            placeholder="263XXXXXXXXX" autocomplete="tel">
+
+        <button class="primary-btn" id="generateBtn"
+            onclick="startPairing()">
+            Generate Pairing Code
+        </button>
+    </div>
+
+    <div class="status" id="status">
+        Your pairing code will appear here
+    </div>
+
+    <div class="code-box" id="codeBox">
+        <h4 id="codeTitle">YOUR PAIRING CODE</h4>
+        <div class="code-value" id="codeValue"></div>
+        <button class="copy-btn" id="copyBtn" onclick="copyResult()">
+            Copy Code
+        </button>
+    </div>
+
+    <div class="info">
+        <strong>How to connect</strong><br>
+        1. Open WhatsApp on your phone.<br>
+        2. Go to Linked Devices.<br>
+        3. Select Link a Device.<br>
+        4. Choose Link with phone number instead.<br>
+        5. Enter the pairing code shown here.
+    </div>
+</section>
+
+<section class="page" id="qrPage">
+    <button class="back" onclick="goHome()">← Back</button>
+
+    <div class="hero">
+        <div class="hero-icon">▦</div>
+        <h1>QR Connection</h1>
+        <p>Connect your WhatsApp account by scanning<br>the QR code</p>
+    </div>
+
+    <div class="form-card">
+        <div class="status" id="qrStatus">Preparing QR connection...</div>
+        <div class="code-box" id="qrBox">
+            <h4>SCAN THIS QR CODE</h4>
+            <img id="qrImage" class="qr-image" alt="WhatsApp QR Code">
+        </div>
+    </div>
+</section>
 
 </main>
 
 <script>
-
 const receiveCheckbox = document.getElementById('receiveSession');
 const notice = document.getElementById('sessionNotice');
 const noticeText = document.getElementById('noticeText');
 
 let requestId = null;
 let currentValue = '';
+let currentMethod = null;
 let pollTimer = null;
 let polling = false;
-let currentMethod = null;
 
 receiveCheckbox.addEventListener('change', () => {
     const enabled = receiveCheckbox.checked;
@@ -592,8 +542,7 @@ receiveCheckbox.addEventListener('change', () => {
     notice.classList.toggle('success', enabled);
     notice.classList.toggle('warning', !enabled);
 
-    notice.querySelector('.notice-icon').textContent =
-        enabled ? '✓' : '!';
+    notice.querySelector('.notice-icon').textContent = enabled ? '✓' : '!';
 
     noticeText.textContent = enabled
         ? 'Your session ID will be sent to your WhatsApp number after successful connection'
@@ -608,9 +557,44 @@ function showPage(id) {
     document.getElementById(id).classList.add('active');
 }
 
+function stopPolling() {
+    polling = false;
+
+    if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+    }
+}
+
+function resetRequest() {
+    stopPolling();
+
+    if (requestId) {
+        fetch('/api/stop/' + encodeURIComponent(requestId), {
+            method: 'POST'
+        }).catch(() => {});
+    }
+
+    requestId = null;
+    currentValue = '';
+    currentMethod = null;
+
+    document.getElementById('codeBox').style.display = 'none';
+    document.getElementById('qrBox').style.display = 'none';
+    document.getElementById('qrImage').removeAttribute('src');
+    document.getElementById('codeValue').textContent = '';
+    document.getElementById('copyBtn').style.display = 'block';
+
+    const button = document.getElementById('generateBtn');
+    button.disabled = false;
+    button.textContent = 'Generate Pairing Code';
+}
+
 function openPairing() {
     resetRequest();
     showPage('pairPage');
+    document.getElementById('status').textContent =
+        'Your pairing code will appear here';
 }
 
 function openQR() {
@@ -620,55 +604,14 @@ function openQR() {
 }
 
 function goHome() {
-    stopPolling();
+    resetRequest();
     showPage('homePage');
-}
-
-function stopPolling() {
-    if (pollTimer) {
-        clearTimeout(pollTimer);
-        pollTimer = null;
-    }
-
-    polling = false;
-}
-
-function resetRequest() {
-    stopPolling();
-
-    requestId = null;
-    currentValue = '';
-    currentMethod = null;
-
-    const codeBox = document.getElementById('codeBox');
-    const qrBox = document.getElementById('qrBox');
-
-    codeBox.style.display = 'none';
-    qrBox.style.display = 'none';
-
-    document.getElementById('codeValue').textContent = '';
-
-    const copyButton = codeBox.querySelector('.copy-btn');
-    copyButton.textContent = 'Copy Code';
-
-    resetButton();
-}
-
-function resetButton() {
-    polling = false;
-
-    const button = document.getElementById('generateBtn');
-
-    button.disabled = false;
-    button.textContent = 'Generate Pairing Code';
 }
 
 async function createRequest(endpoint, body) {
     const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
 
@@ -678,9 +621,12 @@ async function createRequest(endpoint, body) {
         throw new Error(data.error || 'Unable to start connection');
     }
 
+    if (!data.id) {
+        throw new Error('Server did not return a request ID');
+    }
+
     requestId = data.id;
     polling = true;
-
     checkStatus();
 
     return data;
@@ -692,20 +638,17 @@ async function startPairing() {
     const button = document.getElementById('generateBtn');
 
     if (!/^\+?\d{7,15}$/.test(number)) {
-        status.textContent =
-            'Please enter a valid phone number with country code';
+        status.textContent = 'Enter a valid phone number with country code';
         return;
     }
 
     if (polling) return;
 
     resetRequest();
-
     currentMethod = 'pair';
 
     button.disabled = true;
     button.textContent = 'Generating...';
-
     status.textContent = 'Starting WhatsApp connection...';
 
     try {
@@ -713,207 +656,133 @@ async function startPairing() {
             number,
             receiveSession: receiveCheckbox.checked
         });
-
-        status.textContent = 'Waiting for WhatsApp pairing code...';
-
     } catch (error) {
         status.textContent = error.message;
-        resetButton();
+        button.disabled = false;
+        button.textContent = 'Generate Pairing Code';
     }
 }
 
 async function startQR() {
     const status = document.getElementById('qrStatus');
-    const box = document.getElementById('qrBox');
-
-    if (polling) return;
-
-    resetRequest();
 
     currentMethod = 'qr';
-
-    status.textContent = 'Generating your QR code...';
-    box.style.display = 'none';
+    status.textContent = 'Starting QR connection...';
 
     try {
         await createRequest('/api/qr', {
             receiveSession: receiveCheckbox.checked
         });
-
     } catch (error) {
         status.textContent = error.message;
-        stopPolling();
     }
 }
 
 async function checkStatus() {
     if (!requestId || !polling) return;
+
     const id = requestId;
+
     try {
         const response = await fetch(
             '/api/status/' + encodeURIComponent(id)
         );
 
         const data = await response.json();
+
         if (!response.ok) {
-            throw new Error(data.error || 'Connection request expired');
+            throw new Error(data.error || 'Unable to get connection status');
         }
 
         if (id !== requestId) return;
 
         if (currentMethod === 'pair') {
-            await handlePairStatus(data);
+            handlePairStatus(data);
         } else {
-            await handleQRStatus(data);
+            handleQRStatus(data);
         }
 
-        if (
-            data.status === 'connected' ||
-            data.status === 'error' ||
-            data.status === 'stopped'
-        ) {
+        if (['connected', 'error', 'stopped', 'disconnected'].includes(data.status)) {
+            if (data.status === 'disconnected') {
+                showError('WhatsApp disconnected. Please try again.');
+            }
+
+            if (data.status === 'error') {
+                showError(data.error || 'Connection failed');
+            }
+
             stopPolling();
 
-            if (currentMethod === 'pair') {
-                resetButton();
-            }
+            const button = document.getElementById('generateBtn');
+            button.disabled = false;
+            button.textContent = 'Generate Pairing Code';
 
             return;
         }
 
-        if (data.status === 'disconnected') {
-            throw new Error('WhatsApp disconnected. Please try again');
-        }
-
-        pollTimer = setTimeout(checkStatus, 2000);
+        pollTimer = setTimeout(checkStatus, 1200);
 
     } catch (error) {
         if (id !== requestId) return;
 
-        if (currentMethod === 'pair') {
-            document.getElementById('status').textContent =
-                error.message;
-            resetButton();
-        } else {
-            document.getElementById('qrStatus').textContent =
-                error.message;
-        }
-
+        showError(error.message);
         stopPolling();
-        requestId = null;
+
+        const button = document.getElementById('generateBtn');
+        button.disabled = false;
+        button.textContent = 'Generate Pairing Code';
     }
 }
 
-async function handlePairStatus(data) {
+function showError(message) {
+    if (currentMethod === 'pair') {
+        document.getElementById('status').textContent = message;
+    } else {
+        document.getElementById('qrStatus').textContent = message;
+    }
+}
+
+function handlePairStatus(data) {
     const status = document.getElementById('status');
     const box = document.getElementById('codeBox');
-    const value = document.getElementById('codeValue');
     const title = document.getElementById('codeTitle');
+    const value = document.getElementById('codeValue');
+    const copy = document.getElementById('copyBtn');
 
-    if (data.status === 'waiting' && data.code) {
-        title.textContent = 'YOUR PAIRING CODE';
-
+    // Display the code immediately when the backend sends it.
+    if (data.code) {
         currentValue = data.code;
+        title.textContent = 'YOUR PAIRING CODE';
         value.textContent = data.code;
-
+        copy.textContent = 'Copy Pairing Code';
+        copy.style.display = 'block';
         box.style.display = 'block';
 
-        box.querySelector('.copy-btn').textContent = 'Copy Code';
-
-        status.textContent =
-            'Enter this code in WhatsApp Linked Devices';
-
+        status.textContent = 'Enter this code in WhatsApp Linked Devices';
         return;
     }
 
     if (data.status === 'connected') {
         box.style.display = 'block';
 
-        if (data.sessionId) {
+        if (data.sessionId || data.session_id) {
+            currentValue = data.sessionId || data.session_id;
+
             title.textContent = 'YOUR SESSION ID';
+            value.textContent = currentValue;
+            copy.textContent = 'Copy Session ID';
+            copy.style.display = 'block';
 
-            currentValue = data.sessionId;
-            value.textContent = data.sessionId;
-
-            box.querySelector('.copy-btn').textContent =
-                'Copy Session ID';
-
-            status.textContent =
-                'WhatsApp connected successfully! Your session is ready';
+            status.textContent = 'WhatsApp connected successfully!';
         } else if (data.delivered) {
-            title.textContent = 'SESSION SENT';
-
             currentValue = '';
+
+            title.textContent = 'SESSION SENT';
             value.textContent = 'Successfully sent to WhatsApp';
+            copy.style.display = 'none';
 
-            box.querySelector('.copy-btn').style.display = 'none';
-
-            status.textContent =
-                'WhatsApp connected successfully. Check your WhatsApp messages';
+            status.textContent = 'Check your WhatsApp messages';
         } else {
-            status.textContent =
-                'WhatsApp connected successfully';
-        }
-
-        return;
-    }
-
-    if (data.status === 'connecting') {
-        status.textContent = 'Connecting to WhatsApp...';
-    }
-}
-
-async function handleQRStatus(data) {
-    const status = document.getElementById('qrStatus');
-    const box = document.getElementById('qrBox');
-
-    if (data.status === 'waiting' && data.qr) {
-        box.style.display = 'block';
-
-        box.innerHTML = `
-            <h4 style="margin-bottom:20px;color:#aab5cb">
-                SCAN THIS QR CODE
-            </h4>
-            <img
-                src="${data.qr}"
-                alt="WhatsApp QR Code"
-                style="
-                    display:block;
-                    width:100%;
-                    max-width:280px;
-                    margin:auto;
-                    padding:12px;
-                    background:white;
-                    border-radius:12px;
-                "
-            >
-        `;
-
-        status.textContent =
-            'Open WhatsApp, select Linked Devices, then scan this QR code';
-
-        return;
-    }
-
-    if (data.status === 'connected') {
-        box.style.display = 'none';
-
-        if (data.delivered) {
-            status.textContent =
-                'Connected successfully! Your session ID has been sent to WhatsApp';
-        } else if (data.sessionId) {
-            currentValue = data.sessionId;
-
-            box.style.display = 'block';
-
-            box.innerHTML = `
-                <h4>YOUR SESSION ID</h4>
-                <div class="code-value">${data.sessionId}</div>
-                <button class="copy-btn" onclick="copyResult()">
-                    Copy Session ID
-                </button>
-            `;
-
             status.textContent = 'WhatsApp connected successfully';
         }
 
@@ -922,39 +791,95 @@ async function handleQRStatus(data) {
 
     if (data.status === 'connecting') {
         status.textContent = 'Connecting to WhatsApp...';
+    } else if (data.status === 'waiting') {
+        status.textContent = 'Waiting for pairing code...';
     }
 }
 
+function handleQRStatus(data) {
+    const status = document.getElementById('qrStatus');
+    const box = document.getElementById('qrBox');
+    const image = document.getElementById('qrImage');
 
-async function c_res() {
+    if (data.qr) {
+        image.src = data.qr;
+        box.style.display = 'block';
+        status.textContent = 'Scan the QR code using WhatsApp Linked Devices';
+    }
+
+    if (data.status === 'connected') {
+        box.style.display = 'none';
+
+        if (data.delivered) {
+            status.textContent =
+                'Connected successfully! Your session ID was sent to WhatsApp';
+        } else if (data.sessionId || data.session_id) {
+            currentValue = data.sessionId || data.session_id;
+            box.style.display = 'block';
+
+            const title = box.querySelector('h4');
+            title.textContent = 'YOUR SESSION ID';
+
+            image.style.display = 'none';
+
+            let value = document.getElementById('qrSessionValue');
+
+            if (!value) {
+                value = document.createElement('div');
+                value.id = 'qrSessionValue';
+                value.className = 'code-value';
+                box.appendChild(value);
+            }
+
+            value.textContent = currentValue;
+
+            let copy = document.getElementById('qrCopyButton');
+
+            if (!copy) {
+                copy = document.createElement('button');
+                copy.id = 'qrCopyButton';
+                copy.className = 'copy-btn';
+                copy.textContent = 'Copy Session ID';
+                copy.onclick = copyResult;
+                box.appendChild(copy);
+            }
+
+            status.textContent = 'WhatsApp connected successfully';
+        }
+    } else if (data.status === 'connecting') {
+        status.textContent = 'Connecting to WhatsApp...';
+    }
+}
+
+async function copyResult() {
     if (!currentValue) return;
 
     try {
         await navigator.clipboard.writeText(currentValue);
+    } catch {
+        const field = document.createElement('textarea');
+        field.value = currentValue;
+        document.body.appendChild(field);
+        field.select();
+        document.execCommand('copy');
+        field.remove();
+    }
 
-        const button = document.querySelector(
-            currentMethod === 'pair'
-                ? '#codeBox .copy-btn'
-                : '#qrBox .copy-btn'
-        );
+    const button = currentMethod === 'pair'
+        ? document.getElementById('copyBtn')
+        : document.getElementById('qrCopyButton');
 
-        if (!button) return;
-
+    if (button) {
         const original = button.textContent;
-
-        button.textContent = 'Copied Successfully';
+        button.textContent = 'Copied ✓';
 
         setTimeout(() => {
             button.textContent = original;
-        }, 2000);
-
-    } catch {
-        alert('Unable to copy. Please copy manually');
+        }, 1800);
     }
 }
-           
-        
 </script>
 
 </body>
-</html>                  
+</html>
+
