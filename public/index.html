@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#080b12">
-    <title>whatsapp</title>
+    <meta name="theme-color" content="#ffffff">
+    <title>echo</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,212 +17,482 @@
             box-sizing: border-box;
         }
 
-        body {
-            background: #080b12;
-            color: #f5f7ff;
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
+        :root {
+            color-scheme: light;
+
+            --bg: #ffffff;
+            --surface: #ffffff;
+            --surface-secondary: #f8f9fb;
+            --sidebar: #ffffff;
+            --text: #171923;
+            --muted: #697386;
+            --subtle: #929baa;
+            --border: #e6e9ef;
+            --hover: #f1f3f7;
+            --primary: #171923;
+            --primary-text: #ffffff;
+            --input: #ffffff;
+            --success-bg: #ecfdf3;
+            --success-border: #b7ebc9;
+            --success-text: #16834b;
+            --shadow: 0 4px 18px rgba(20, 30, 50, .035);
         }
 
-        .navbar {
-            height: 75px;
-            border-bottom: 1px solid #1c2433;
+        html[data-theme="dark"] {
+            color-scheme: dark;
+
+            --bg: #101116;
+            --surface: #17191f;
+            --surface-secondary: #1d2028;
+            --sidebar: #12141a;
+            --text: #f5f6f8;
+            --muted: #a0a6b5;
+            --subtle: #777f90;
+            --border: #2b2f39;
+            --hover: #242731;
+            --primary: #f5f6f8;
+            --primary-text: #171923;
+            --input: #15171d;
+            --success-bg: #10271e;
+            --success-border: #20583c;
+            --success-text: #69d69a;
+            --shadow: 0 4px 20px rgba(0, 0, 0, .15);
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            font-size: 14px;
+            transition: background .2s, color .2s;
+        }
+
+        button, input {
+            font-family: inherit;
+        }
+
+        
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 220px;
+            height: 100vh;
+            background: var(--sidebar);
+            border-right: 1px solid var(--border);
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 7%;
+            flex-direction: column;
+            z-index: 10;
         }
 
         .brand {
+            height: 76px;
             display: flex;
             align-items: center;
             gap: 12px;
+            padding: 0 25px;
+            border-bottom: 1px solid var(--border);
+            font-size: 21px;
             font-weight: 800;
-            letter-spacing: 1px;
+            letter-spacing: -.8px;
         }
 
         .logo {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
+            width: 35px;
+            height: 35px;
             display: grid;
             place-items: center;
-            background: linear-gradient(135deg, #577cff, #8a5cf6);
-            font-size: 20px;
+            background: var(--primary);
+            color: var(--primary-text);
+            border-radius: 9px;
+            font-size: 19px;
+            font-weight: 800;
+        }
+
+        .nav {
+            padding: 23px 13px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 12px 13px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .nav-item.active {
+            color: var(--text);
+            background: var(--hover);
+            font-weight: 700;
+        }
+
+        .nav-icon {
+            width: 19px;
+            text-align: center;
+            font-size: 17px;
+        }
+
+        .sidebar-bottom {
+            margin-top: auto;
+            padding: 15px;
+        }
+
+        .sidebar-info {
+            padding: 16px;
+            background: var(--surface-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .sidebar-info strong {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 7px;
+        }
+
+        .sidebar-info p {
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        
+
+        .main {
+            margin-left: 220px;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            height: 76px;
+            padding: 0 5%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
         .online {
-            color: #5de1a3;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 13px;
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
         }
 
-        .container {
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            background: #20c779;
+            border-radius: 50%;
+        }
+
+        .theme-toggle {
+            width: 38px;
+            height: 38px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            border-radius: 9px;
+            cursor: pointer;
+            font-size: 17px;
+            display: grid;
+            place-items: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .theme-toggle:hover {
+            background: var(--hover);
+        }
+
+        
+
+        .content {
             width: 100%;
-            max-width: 550px;
-            margin: 85px auto;
-            padding: 20px;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 55px 35px 40px;
+        }
+
+        .page-heading {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 32px;
+        }
+
+        .page-logo {
+            width: 55px;
+            height: 55px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--border);
+            background: var(--surface-secondary);
+            border-radius: 12px;
+            font-size: 27px;
+            font-weight: 800;
+        }
+
+        .page-heading h2 {
+            font-size: 21px;
+            font-weight: 700;
+            letter-spacing: -.7px;
+            margin-bottom: 5px;
+        }
+
+        .page-heading p {
+            color: var(--muted);
+            font-size: 13px;
         }
 
         .tag {
-            color: #91aaff;
             font-size: 11px;
             font-weight: 700;
-            letter-spacing: 2px;
-            margin-bottom: 17px;
+            letter-spacing: 1.3px;
+            color: var(--muted);
+            margin-bottom: 13px;
         }
 
         h1 {
-            font-size: clamp(30px, 6vw, 43px);
-            line-height: 1.15;
+            font-size: clamp(29px, 4vw, 40px);
             letter-spacing: -1.8px;
-            margin-bottom: 15px;
+            line-height: 1.2;
+            font-weight: 700;
+            margin-bottom: 13px;
         }
 
         .subtitle {
-            color: #8c98aa;
-            line-height: 1.8;
+            color: var(--muted);
             font-size: 14px;
-            margin-bottom: 35px;
+            line-height: 1.8;
+            max-width: 540px;
+            margin-bottom: 32px;
         }
 
+        
+
         .panel {
-            background: #101621;
-            border: 1px solid #252f40;
-            border-radius: 17px;
-            padding: 27px;
-            box-shadow: 0 20px 60px #00000030;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: var(--shadow);
         }
 
         .label {
             display: block;
-            color: #a6b1c3;
+            color: var(--muted);
             font-size: 11px;
             font-weight: 700;
-            letter-spacing: 1px;
+            letter-spacing: .6px;
             margin-bottom: 12px;
         }
 
+        
+
         input {
             width: 100%;
-            background: #090f19;
-            border: 1px solid #29364a;
-            color: white;
-            padding: 16px;
-            border-radius: 10px;
-            font-size: 15px;
+            background: var(--input);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 14px 15px;
+            border-radius: 8px;
+            font-size: 14px;
             outline: none;
             transition: .2s;
-            font-family: inherit;
+        }
+
+        input::placeholder {
+            color: var(--subtle);
         }
 
         input:focus {
-            border-color: #6787ff;
-            box-shadow: 0 0 0 3px #6787ff20;
+            border-color: #7186b5;
+            box-shadow: 0 0 0 3px rgba(100, 130, 190, .12);
         }
+
+        
 
         button {
             width: 100%;
             border: 0;
-            padding: 16px;
-            border-radius: 10px;
-            background: linear-gradient(110deg, #5277fa, #805df3);
-            color: white;
+            padding: 14px;
+            border-radius: 8px;
+            background: var(--primary);
+            color: var(--primary-text);
+            font-size: 13px;
             font-weight: 700;
-            font-size: 14px;
             cursor: pointer;
-            margin-top: 17px;
+            margin-top: 16px;
             transition: .2s;
-            font-family: inherit;
         }
 
         button:hover {
-            filter: brightness(1.12);
-            transform: translateY(-1px);
+            opacity: .88;
         }
 
         button:disabled {
             opacity: .5;
             cursor: not-allowed;
-            transform: none;
         }
+
+        .copy {
+            background: var(--surface-secondary);
+            color: var(--text);
+            border: 1px solid var(--border);
+            margin-top: 13px;
+        }
+
+        
 
         .result {
             display: none;
             margin-top: 25px;
             padding-top: 25px;
-            border-top: 1px solid #273143;
+            border-top: 1px solid var(--border);
         }
 
         .code {
             font-size: 32px;
             font-weight: 800;
-            letter-spacing: 7px;
+            letter-spacing: 6px;
             text-align: center;
             padding: 22px 5px;
-            color: #ffffff;
+            color: var(--text);
             overflow-wrap: anywhere;
         }
 
         .hint {
-            color: #8b98ab;
+            color: var(--muted);
             text-align: center;
             font-size: 12px;
-            line-height: 1.8;
-        }
-
-        .copy {
-            background: #202c42;
-            margin-top: 10px;
+            line-height: 1.9;
+            margin-top: 5px;
         }
 
         .status {
-            margin-top: 20px;
-            padding: 13px;
-            border-radius: 9px;
-            background: #0b1820;
-            border: 1px solid #203b38;
-            color: #6be0a5;
+            margin-top: 18px;
+            padding: 12px;
+            border-radius: 8px;
+            background: var(--success-bg);
+            border: 1px solid var(--success-border);
+            color: var(--success-text);
             font-size: 12px;
             text-align: center;
         }
+
+        
 
         .session {
             display: none;
             margin-top: 18px;
             padding: 17px;
-            background: #0b1020;
-            border: 1px solid #33426a;
-            border-radius: 10px;
+            background: var(--surface-secondary);
+            border: 1px solid var(--border);
+            border-radius: 9px;
         }
 
         .session-value {
             margin-top: 12px;
-            color: #a8baff;
+            color: var(--muted);
             font-size: 12px;
             line-height: 1.8;
             word-break: break-all;
         }
 
+        
+
         .footer {
             text-align: center;
-            color: #647187;
+            color: var(--subtle);
             font-size: 11px;
             margin-top: 35px;
+            padding-bottom: 20px;
+            letter-spacing: .5px;
         }
 
-        @media(max-width: 600px) {
-            .navbar {
+        
+
+        @media(max-width: 750px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .brand {
+                height: 65px;
                 padding: 0 20px;
             }
 
-            .container {
-                margin: 45px auto;
+            .nav {
+                display: none;
+            }
+
+            .sidebar-bottom {
+                display: none;
+            }
+
+            .main {
+                margin-left: 0;
+            }
+
+            .topbar {
+                height: 58px;
+                padding: 0 20px;
+            }
+
+            .content {
+                padding: 35px 20px;
+            }
+
+            .page-heading {
+                margin-bottom: 27px;
+            }
+
+            h1 {
+                font-size: 32px;
             }
 
             .panel {
-                padding: 21px;
+                padding: 20px;
+            }
+        }
+
+        @media(max-width: 380px) {
+            .online {
+                font-size: 10px;
+                padding: 8px 10px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            .code {
+                font-size: 25px;
+                letter-spacing: 4px;
             }
         }
     </style>
@@ -230,87 +500,195 @@
 
 <body>
 
-    <nav class="navbar">
+    <aside class="sidebar">
+
         <div class="brand">
             <div class="logo">E</div>
             ECHO
         </div>
-        <div class="online">● SYSTEM ONLINE</div>
-    </nav>
 
-    <main class="container">
+        <nav class="nav">
+            <div class="nav-item active">
+                <span class="nav-icon">▦</span>
+                Dashboard
+            </div>
 
-        <div class="tag">WHATSAPP SESSION ENGINE</div>
+            <div class="nav-item">
+                <span class="nav-icon">◇</span>
+                Deployments
+            </div>
 
-        <h1>Connect your<br>WhatsApp device</h1>
+            <div class="nav-item">
+                <span class="nav-icon">⬡</span>
+                Services
+            </div>
 
-        <p class="subtitle">
-            Generate a secure pairing code and connect your
-            WhatsApp account in seconds
-        </p>
+            <div class="nav-item">
+                <span class="nav-icon">▤</span>
+                Logs
+            </div>
 
-        <div class="panel">
+            <div class="nav-item">
+                <span class="nav-icon">⚙</span>
+                Settings
+            </div>
+        </nav>
 
-            <form id="pairForm">
+        <div class="sidebar-bottom">
+            <div class="sidebar-info">
+                <strong>Session Engine</strong>
+                <p>Generate and manage your WhatsApp pairing sessions securely.</p>
+            </div>
+        </div>
 
-                <label class="label" for="number">
-                    PHONE NUMBER WITH COUNTRY CODE
-                </label>
+    </aside>
 
-                <input
-                    type="tel"
-                    id="number"
-                    placeholder="27686881509"
-                    autocomplete="tel"
-                    required
-                >
 
-                <button type="submit" id="generateBtn">
-                    Generate →
-                </button>
 
-            </form>
+    <div class="main">
 
-            <div class="result" id="result">
+        <header class="topbar">
 
-                <span class="label">YOUR PAIRING CODE</span>
+            <div class="top-actions">
 
-                <div class="code" id="pairCode">--------</div>
-
-                <p class="hint">
-                    Open WhatsApp → Linked Devices →
-                    Link a Device → Link with phone number instead
-                </p>
-
-                <button class="copy" id="copyCode" type="button">
-                    Copy Code
-                </button>
-
-                <div class="status" id="status">
-                    Waiting for WhatsApp connection...
+                <div class="online">
+                    <span class="online-dot"></span>
+                    SYSTEM ONLINE
                 </div>
 
-                <div class="session" id="sessionBox">
-                    <span class="label">YOUR SESSION ID</span>
+                <button
+                    class="theme-toggle"
+                    id="themeToggle"
+                    type="button"
+                    aria-label="Toggle theme"
+                    title="Toggle light/dark mode"
+                >☾</button>
 
-                    <div class="session-value" id="sessionId"></div>
+            </div>
 
-                    <button class="copy" id="copySession" type="button">
-                        Copy session
-                    </button>
+        </header>
+
+        <main class="content">
+
+            <div class="page-heading">
+
+                <div class="page-logo">E</div>
+
+                <div>
+                    <h2>ECHO</h2>
+                    <p>WhatsApp Session Engine</p>
                 </div>
 
             </div>
 
-        </div>
+            <div class="tag">WHATSAPP SESSION ENGINE</div>
 
-        <div class="footer">
-            POWERED BY BAILEYS · ECHO
-        </div>
+            <h1>Connect your<br>WhatsApp device</h1>
 
-    </main>
+            <p class="subtitle">
+                Generate a secure pairing code and connect your
+                WhatsApp account in seconds.
+            </p>
+
+            
+
+            <div class="panel">
+
+                <form id="pairForm">
+
+                    <label class="label" for="number">
+                        PHONE NUMBER WITH COUNTRY CODE
+                    </label>
+
+                    <input
+                        type="tel"
+                        id="number"
+                        placeholder="27686881509"
+                        autocomplete="tel"
+                        required
+                    >
+
+                    <button type="submit" id="generateBtn">
+                        Generate →
+                    </button>
+
+                </form>
+
+                
+
+                <div class="result" id="result">
+
+                    <span class="label">YOUR PAIRING CODE</span>
+
+                    <div class="code" id="pairCode">--------</div>
+
+                    <p class="hint">
+                        Open WhatsApp → Linked Devices →
+                        Link a Device → Link with phone number instead
+                    </p>
+
+                    <button class="copy" id="copyCode" type="button">
+                        Copy Code
+                    </button>
+
+                    <div class="status" id="status">
+                        Waiting for WhatsApp connection...
+                    </div>
+
+                
+
+                    <div class="session" id="sessionBox">
+
+                        <span class="label">YOUR SESSION ID</span>
+
+                        <div class="session-value" id="sessionId"></div>
+
+                        <button class="copy" id="copySession" type="button">
+                            Copy session
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="footer">
+                POWERED BY BAILEYS · ECHO
+            </div>
+
+        </main>
+
+    </div>
+
+    <script>
+        const root = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        function setTheme(theme) {
+            root.setAttribute('data-theme', theme);
+            themeToggle.textContent = theme === 'dark' ? '☀' : '☾';
+            document.querySelector('meta[name="theme-color"]')
+                .setAttribute(
+                    'content',
+                    theme === 'dark' ? '#101116' : '#ffffff'
+                );
+            try {
+                localStorage.setItem('echo-theme', theme);
+            } catch (error) {}
+        }
+        let savedTheme = 'light';
+        try {
+            savedTheme = localStorage.getItem('echo-theme') || 'light';
+        } catch (error) {}
+        setTheme(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const to_theme = root.getAttribute('data-theme');
+
+            setTheme(to_theme === 'dark' ? 'light' : 'dark');
+        });
+    </script>
 
     <script src="/script.js"></script>
 
 </body>
-</html>
+    </html>
