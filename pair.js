@@ -7,7 +7,8 @@ const {
     default: makeWASocket,
     useMultiFileAuthState,
     Browsers,
-    DisconnectReason
+    DisconnectReason,
+   makeCacheableSignalKeyStore
 } = require('@whiskeysockets/baileys');
 
 const { createSession } = require('./Func/session');
@@ -71,12 +72,15 @@ app.get('/pair', async (req, res) => {
             await useMultiFileAuthState(session.creds_x);
 
         wa = makeWASocket({
-            auth: state,
-            logger: pino({ level: 'silent' }),
-            browser: Browsers.macOS('Safari'),
-            printQRInTerminal: false,
-            syncFullHistory: false,
-            markOnlineOnConnect: false
+            auth: {
+                    creds: state.creds,
+                    keys: makeCacheableSignalKeyStore(state.keys, pino({level: "fatal"}).child({level: "fatal"})),
+                },
+                logger: pino({level: "fatal"}).child({level: "fatal"}),
+                browser: Browsers.macOS("Safari"),
+                downloadHistory: false,
+                syncFullHistory: false,      
+                markOnlineOnConnect: false
         });
 
         sessions.set(id, wa);
