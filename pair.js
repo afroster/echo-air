@@ -8,7 +8,7 @@ const {
     Browsers,
     DisconnectReason
 } = require('@whiskeysockets/baileys');
-const { createSession } = require('./Func/makeSession');
+const { createSession } = require('./Func/session');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -22,11 +22,11 @@ const sessions = new Map();
 const pair_x = new Map();
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(ROOT, 'statics', 'pair.html'));
+    res.sendFile(path.join(ROOT, 'public', 'index.html'));
 });
 
 app.get('/pair.html', (req, res) => {
-    res.sendFile(path.join(ROOT, 'public', 'pair.html'));
+    res.sendFile(path.join(ROOT, 'public', 'index.html'));
 });
 
 app.get('/pair', async (req, res) => {
