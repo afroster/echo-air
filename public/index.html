@@ -1,135 +1,316 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#090b12">
-    <title>ECHO</title>
-    <link rel="stylesheet" href="/style.css">
+    <meta name="theme-color" content="#080b12">
+    <title>whatsapp</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #080b12;
+            color: #f5f7ff;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            height: 75px;
+            border-bottom: 1px solid #1c2433;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 7%;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, #577cff, #8a5cf6);
+            font-size: 20px;
+        }
+
+        .online {
+            color: #5de1a3;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 550px;
+            margin: 85px auto;
+            padding: 20px;
+        }
+
+        .tag {
+            color: #91aaff;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 17px;
+        }
+
+        h1 {
+            font-size: clamp(30px, 6vw, 43px);
+            line-height: 1.15;
+            letter-spacing: -1.8px;
+            margin-bottom: 15px;
+        }
+
+        .subtitle {
+            color: #8c98aa;
+            line-height: 1.8;
+            font-size: 14px;
+            margin-bottom: 35px;
+        }
+
+        .panel {
+            background: #101621;
+            border: 1px solid #252f40;
+            border-radius: 17px;
+            padding: 27px;
+            box-shadow: 0 20px 60px #00000030;
+        }
+
+        .label {
+            display: block;
+            color: #a6b1c3;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        input {
+            width: 100%;
+            background: #090f19;
+            border: 1px solid #29364a;
+            color: white;
+            padding: 16px;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            transition: .2s;
+            font-family: inherit;
+        }
+
+        input:focus {
+            border-color: #6787ff;
+            box-shadow: 0 0 0 3px #6787ff20;
+        }
+
+        button {
+            width: 100%;
+            border: 0;
+            padding: 16px;
+            border-radius: 10px;
+            background: linear-gradient(110deg, #5277fa, #805df3);
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 17px;
+            transition: .2s;
+            font-family: inherit;
+        }
+
+        button:hover {
+            filter: brightness(1.12);
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            display: none;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid #273143;
+        }
+
+        .code {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: 7px;
+            text-align: center;
+            padding: 22px 5px;
+            color: #ffffff;
+            overflow-wrap: anywhere;
+        }
+
+        .hint {
+            color: #8b98ab;
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        .copy {
+            background: #202c42;
+            margin-top: 10px;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 13px;
+            border-radius: 9px;
+            background: #0b1820;
+            border: 1px solid #203b38;
+            color: #6be0a5;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .session {
+            display: none;
+            margin-top: 18px;
+            padding: 17px;
+            background: #0b1020;
+            border: 1px solid #33426a;
+            border-radius: 10px;
+        }
+
+        .session-value {
+            margin-top: 12px;
+            color: #a8baff;
+            font-size: 12px;
+            line-height: 1.8;
+            word-break: break-all;
+        }
+
+        .footer {
+            text-align: center;
+            color: #647187;
+            font-size: 11px;
+            margin-top: 35px;
+        }
+
+        @media(max-width: 600px) {
+            .navbar {
+                padding: 0 20px;
+            }
+
+            .container {
+                margin: 45px auto;
+            }
+
+            .panel {
+                padding: 21px;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-<header>
-    <button class="menu" aria-label="Menu">☰</button>
-    <div class="brand">ECHO</div>
-    <div class="header-side"></div>
-</header>
-
-<main>
-
-    <section class="page active" id="homePage">
-        <div class="hero">
-            <div class="hero-icon">E</div>
-            <h1>Connect WhatsApp</h1>
-            <p>Securely connect your WhatsApp account<br>and generate your personal session</p>
+    <nav class="navbar">
+        <div class="brand">
+            <div class="logo">E</div>
+            ECHO
         </div>
+        <div class="online">● SYSTEM ONLINE</div>
+    </nav>
 
-        <label class="receive">
-            <input type="checkbox" id="receiveSession">
-            <span>Receive Session on WhatsApp</span>
-        </label>
+    <main class="container">
 
-        <div class="section-title">Select Connection Method</div>
+        <div class="tag">WHATSAPP SESSION ENGINE</div>
 
-        <div class="methods">
-            <button class="method" id="qrMethod">
-                <div class="method-icon">▦</div>
-                <div>
-                    <h3>QR Code</h3>
-                    <p>Scan with WhatsApp</p>
+        <h1>Connect your<br>WhatsApp device</h1>
+
+        <p class="subtitle">
+            Generate a secure pairing code and connect your
+            WhatsApp account in seconds
+        </p>
+
+        <div class="panel">
+
+            <form id="pairForm">
+
+                <label class="label" for="number">
+                    PHONE NUMBER WITH COUNTRY CODE
+                </label>
+
+                <input
+                    type="tel"
+                    id="number"
+                    placeholder="27686881509"
+                    autocomplete="tel"
+                    required
+                >
+
+                <button type="submit" id="generateBtn">
+                    Generate →
+                </button>
+
+            </form>
+
+            <div class="result" id="result">
+
+                <span class="label">YOUR PAIRING CODE</span>
+
+                <div class="code" id="pairCode">--------</div>
+
+                <p class="hint">
+                    Open WhatsApp → Linked Devices →
+                    Link a Device → Link with phone number instead
+                </p>
+
+                <button class="copy" id="copyCode" type="button">
+                    Copy Code
+                </button>
+
+                <div class="status" id="status">
+                    Waiting for WhatsApp connection...
                 </div>
-                <span class="arrow">›</span>
-            </button>
 
-            <button class="method" id="pairMethod">
-                <div class="method-icon">▢</div>
-                <div>
-                    <h3>Pairing Code</h3>
-                    <p>Use Phone Number</p>
+                <div class="session" id="sessionBox">
+                    <span class="label">YOUR SESSION ID</span>
+
+                    <div class="session-value" id="sessionId"></div>
+
+                    <button class="copy" id="copySession" type="button">
+                        Copy session
+                    </button>
                 </div>
-                <span class="arrow">›</span>
-            </button>
-        </div>
 
-        <div class="notice warning" id="sessionNotice">
-            <div class="notice-icon">!</div>
-            <div id="noticeText">
-                You will not receive the session ID on WhatsApp, so copy it from here.
-            </div>
-        </div>
-    </section>
-
-    <section class="page" id="pairPage">
-        <button class="back" id="pairBack">← Back</button>
-
-        <div class="hero">
-            <div class="hero-icon">▢</div>
-            <h1>Pairing Code</h1>
-            <p>Enter your WhatsApp number to generate<br>a secure pairing code</p>
-        </div>
-
-        <div class="form-card">
-            <label for="phone">WhatsApp Phone Number</label>
-
-            <input
-                type="tel"
-                class="phone-input"
-                id="phone"
-                placeholder="+263 77 123 4567"
-                autocomplete="tel"
-                inputmode="tel"
-            >
-
-            <button class="primary-btn" id="generateBtn">
-                Generate Pairing Code
-            </button>
-        </div>
-
-        <div class="status" id="status">
-            Your pairing code will appear here.
-        </div>
-
-        <div class="code-box" id="codeBox">
-            <h4 id="codeTitle">YOUR PAIRING CODE</h4>
-            <div class="code-value" id="codeValue"></div>
-            <button class="copy-btn" id="copyBtn">Copy Code</button>
-        </div>
-
-        <div class="info">
-            <strong>How to connect</strong><br>
-            1. Open WhatsApp on your phone.<br>
-            2. Go to Linked Devices.<br>
-            4. Choose Link with phone num<br>
-            5. Enter the pairing code
-        </div>
-    </section>
-
-    <section class="page" id="qrPage">
-        <button class="back" id="qrBack">← Back</button>
-
-        <div class="hero">
-            <div class="hero-icon">▦</div>
-            <h1>QR Connection</h1>
-            <p>Connect your WhatsApp account by scanning<br>the QR code</p>
-        </div>
-
-        <div class="form-card">
-            <div class="status" id="qrStatus">
-                Preparing QR connection...
             </div>
 
-            <div class="code-box" id="qrBox">
-                <h4 id="qrTitle">SCAN THIS QR CODE</h4>
-                <img id="qrImage" class="qr-image" alt="WhatsApp QR Code">
-                <div class="code-value" id="qrSessionValue"></div>
-                <button class="copy-btn" id="qrCopyBtn">Copy Session ID</button>
-            </div>
         </div>
-    </section>
 
-</main>
+        <div class="footer">
+            POWERED BY BAILEYS · ECHO
+        </div>
 
-<script src="/script.js" defer></script>
+    </main>
+
+    <script src="/script.js"></script>
+
 </body>
 </html>
