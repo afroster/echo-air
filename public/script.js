@@ -12,6 +12,35 @@ const sessionId = document.getElementById('sessionId');
 
 let currentCode = '';
 let currentSession = '';
+let polling = false;
+
+async function fetchJSON(url) {
+    const response = await fetch(url, {
+        headers: {
+            'Accept': 'application/json'
+        }
+    });
+
+    const text = await response.text();
+
+    let data;
+
+    try {
+        data = JSON.parse(text);
+    } catch {
+        console.error('Invalid server response:', text);
+
+        throw new Error(
+            `Server returned HTML instead of JSON (${response.status}). Check your backend route.`
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error(data.message || `Server error: ${response.status}`);
+    }
+
+    return data;
+}
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -31,14 +60,22 @@ form.addEventListener('submit', async (e) => {
 
     pairCode.textContent = 'WAIT...';
     statusBox.textContent = 'Connecting to WhatsApp...';
+    statusBox.style.color = '#6be0a5';
+
+    currentCode = '';
+    currentSession = '';
+
     try {
-        const response = await fetch(
-            `/pair?number=${number}`
+        const data = await fetchJSON(
+            `/pair?number=${encodeURIComponent(number)}`
         );
 
-        const data = await response.json();
-        if (!response.ok || !data.ok) {
+        if (!data.ok) {
             throw new Error(data.message || 'Pairing failed');
+        }
+
+        if (!data.code || !data.requestId) {
+            throw new Error('Invalid pairing response from server');
         }
 
         currentCode = data.code;
@@ -53,6 +90,8 @@ form.addEventListener('submit', async (e) => {
         checkStatus(data.requestId);
 
     } catch (error) {
+        console.error('Pairing error:', error);
+
         statusBox.textContent = error.message;
         statusBox.style.color = '#ff8181';
 
@@ -65,28 +104,41 @@ async function checkStatus(id) {
     let attempts = 0;
     const maxAttempts = 180;
 
+    polling = true;
+
     async function poll() {
+        if (!polling) return;
+
         if (attempts++ >= maxAttempts) {
             statusBox.textContent = 'Status check timed out. Check your connection.';
+            polling = false;
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Try again →';
+            num_input.disabled = false;
             return;
         }
 
         try {
-            const response = await fetch(
-                `/pair-status?id=${id}`
+            const data = await fetchJSON(
+                `/pair-status?id=${encodeURIComponent(id)}`
             );
 
-            const data = await response.json();
-            if (!response.ok || !data.ok) {
+            if (!data.ok) {
                 throw new Error(data.message || 'Status unavailable');
             }
+
             if (data.status === 'connected') {
-                statusBox.textContent = '✓ Connected success';
+                polling = false;
+
+                statusBox.textContent = '✓ Connected successfully';
                 statusBox.style.color = '#6be0a5';
 
-                sessionId.textContent = data.sessionId;
-                sessionBox.style.display = 'block';
+                if (data.sessionId) {
+                    sessionId.textContent = data.sessionId;
+                    sessionBox.style.display = 'block';
+                }
 
+                generateBtn.disabled = false;
                 generateBtn.textContent = 'Connected ✓';
                 return;
             }
@@ -96,7 +148,9 @@ async function checkStatus(id) {
                 data.status === 'logged_out' ||
                 data.status === 'disconnected'
             ) {
-                statusBox.textContent = data.message;
+                polling = false;
+
+                statusBox.textContent = data.message || 'Connection failed';
                 statusBox.style.color = '#ff8585';
 
                 generateBtn.disabled = false;
@@ -108,14 +162,18 @@ async function checkStatus(id) {
             statusBox.textContent = data.message || 'Waiting for pairing...';
 
         } catch (error) {
+            console.error('Status check error:', error);
             statusBox.textContent = 'Checking connection...';
         }
 
-        setTimeout(poll, 2000);
+        if (polling) {
+            setTimeout(poll, 2000);
+        }
     }
 
     poll();
 }
+
 
 document.getElementById('copyCode').addEventListener('click', async () => {
     if (!currentCode) return;
@@ -138,4 +196,4 @@ document.getElementById('copySession').addEventListener('click', async () => {
         statusBox.textContent = 'Unable to copy session ID';
     }
 });
-            
+                      
