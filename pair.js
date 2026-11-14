@@ -1,3 +1,4 @@
+
 const express = require('express');
 const path = require('path');
 const pino = require('pino');
@@ -8,6 +9,7 @@ const {
     Browsers,
     DisconnectReason
 } = require('@whiskeysockets/baileys');
+
 const { createSession } = require('./Func/session');
 
 const app = express();
@@ -25,13 +27,12 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(ROOT, 'public', 'index.html'));
 });
 
-app.get('/pair.html', (req, res) => {
+app.get('/index.html', (req, res) => {
     res.sendFile(path.join(ROOT, 'public', 'index.html'));
 });
 
 app.get('/pair', async (req, res) => {
-    const number = String(req.query.number || '')
-        .replace(/\D/g, '');
+    const number = String(req.query.number || '').replace(/\D/g, '');
 
     if (!/^\d{7,15}$/.test(number)) {
         return res.status(400).json({
@@ -42,19 +43,32 @@ app.get('/pair', async (req, res) => {
 
     let wa;
     let id;
+    let responseSent = false;
+
+    const sendResponse = (status, data) => {
+        if (!responseSent && !res.headersSent) {
+            responseSent = true;
+            res.status(status).json(data);
+        }
+    };
 
     try {
         const session = await createSession();
+
         id = session.id;
 
-        const { state, saveCreds } =
-            await useMultiFileAuthState(session.creds_x);
+        if (!/^echo~[a-f0-9]{96}$/.test(id)) {
+            throw new Error('Invalid session ID generated');
+        }
 
-        _pair_x.set(id, {
+        pair_x.set(id, {
             status: 'starting',
             sessionId: null,
             message: 'Starting WhatsApp connection'
         });
+
+        const { state, saveCreds } =
+            await useMultiFileAuthState(session.creds_x);
 
         wa = makeWASocket({
             auth: state,
@@ -67,68 +81,36 @@ app.get('/pair', async (req, res) => {
 
         sessions.set(id, wa);
 
-        let code_Req = false;
+        let codeRequested = false;
+
         wa.ev.on('creds.update', saveCreds);
+
         wa.ev.on('connection.update', async (update) => {
-            const { connection, qr, lastDisconnect } = update;
-            if (qr && !wa.authState.creds.registered && !code_Req) {
-                code_Req = true;
+            const { connection, lastDisconnect } = update;
 
-                try {
-                    const code = await wa.requestPairingCode(number);
-                    _pair_x.set(id, {
-                        status: 'waiting',
-                        code,
-                        sessionId: null,
-                        message: 'Waiting for WhatsApp pairing'
-                    });
-
-                    if (!res.headersSent) {
-                        res.json({
-                            ok: true,
-                            requestId: id,
-                            code
-                        });
-                    }
-                } catch (error) {
-                    console.error(error);
-
-                    _pair_x.set(id, {
-                        status: 'error',
-                        message: 'Could not generate pairing code'
-                    });
-
-                    if (!res.headersSent) {
-                        res.status(500).json({
-                            ok: false,
-                            message: 'Pairing code generation failed'
-                        });
-                    }
-
-                    sessions.delete(id);
-                    wa.end(error);
-                }
-            }
-
+        
             if (connection === 'open') {
                 try {
                     await saveCreds();
-                    _pair_x.set(id, {
+
+                    pair_x.set(id, {
                         status: 'connected',
                         sessionId: id,
                         message: 'WhatsApp connected successfully'
                     });
-                    console.log(id);
+
+                    console.log('WhatsApp connected successfully');
+
                     await wa.sendMessage(wa.user.id, {
                         text:
                             '*ECHO SESSION*\n\n' +
-                            'Your session saved\n\n' +
+                            'Your session has been saved.\n\n' +
                             `Session ID: ${id}\n\n` +
-                            '*Keep this ID private*'
+                            '*Keep this ID private.*'
                     });
 
                 } catch (error) {
-                    console.error(error);
+                    console.error('Connection save error:', error);
                 }
             }
 
@@ -139,43 +121,100 @@ app.get('/pair', async (req, res) => {
                 sessions.delete(id);
 
                 if (status === DisconnectReason.loggedOut) {
-                    _pair_x.set(id, {
+                    pair_x.set(id, {
                         status: 'logged_out',
                         sessionId: id,
-                        message: 'WhatsApp logged out. Pair again'
+                        message: 'WhatsApp logged out. Pair again.'
                     });
                 } else {
-                    _pair_x.set(id, {
+                    pair_x.set(id, {
                         status: 'disconnected',
                         sessionId: id,
-                        message: 'Connection disconnected. Saved files retained'
+                        message: 'Connection disconnected.'
                     });
                 }
-                console.log(id, status);
+
+                if (!responseSent) {
+                    sendResponse(503, {
+                        ok: false,
+                        message: 'WhatsApp disconnected before pairing code generation'
+                    });
+                }
+
+                console.log('WhatsApp connection closed:', status);
             }
         });
 
+        setTimeout(async () => {
+            if (codeRequested) return;
+            codeRequested = true;
+
+            try {
+                if (state.creds.registered) {
+                    throw new Error('Session is already registered');
+                }
+
+                const code = await wa.requestPairingCode(number);
+
+                pair_x.set(id, {
+                    status: 'waiting',
+                    code,
+                    sessionId: null,
+                    message: 'Waiting for WhatsApp pairing'
+                });
+
+                sendResponse(200, {
+                    ok: true,
+                    requestId: id,
+                    code
+                });
+
+            } catch (error) {
+                console.error('Pairing code error:', error);
+
+                pair_x.set(id, {
+                    status: 'error',
+                    sessionId: null,
+                    message: error.message || 'Could not generate pairing code'
+                });
+
+                sendResponse(500, {
+                    ok: false,
+                    message: error.message || 'Pairing code generation failed'
+                });
+
+                sessions.delete(id);
+
+                try {
+                    wa.end(error);
+                } catch (_) {}
+            }
+        }, 3000);
+
     } catch (error) {
-        console.error(error);
+        console.error('Pair route error:', error);
+
         if (id) {
             sessions.delete(id);
-            _pair_x.set(id, {
+
+            pair_x.set(id, {
                 status: 'error',
+                sessionId: null,
                 message: 'Server error'
             });
         }
 
-        if (!res.headersSent) {
-            res.status(500).json({
-                ok: false,
-                message: 'Pairing service unavailable'
-            });
-        }
+        sendResponse(500, {
+            ok: false,
+            message: 'Pairing service unavailable'
+        });
     }
 });
 
+
 app.get('/pair-status', (req, res) => {
     const id = String(req.query.id || '');
+
     if (!/^echo~[a-f0-9]{96}$/.test(id)) {
         return res.status(400).json({
             ok: false,
@@ -183,7 +222,8 @@ app.get('/pair-status', (req, res) => {
         });
     }
 
-    const status = _pair_x.get(id);
+    const status = pair_x.get(id);
+
     if (!status) {
         return res.status(404).json({
             ok: false,
@@ -191,7 +231,7 @@ app.get('/pair-status', (req, res) => {
         });
     }
 
-    res.json({
+    return res.json({
         ok: true,
         status: status.status,
         sessionId: status.sessionId,
@@ -199,7 +239,14 @@ app.get('/pair-status', (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on: ${PORT}`);
+app.use('/api', (req, res) => {
+    res.status(404).json({
+        ok: false,
+        message: 'API route not found'
+    });
 });
-    
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
+        
