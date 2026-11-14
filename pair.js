@@ -48,7 +48,7 @@ app.get('/pair', async (req, res) => {
         id = session.id;
 
         const { state, saveCreds } =
-            await useMultiFileAuthState(session.sessionPath);
+            await useMultiFileAuthState(session.creds_x);
 
         _pair_x.set(id, {
             status: 'starting',
