@@ -49,6 +49,8 @@ app.get('/pair', async (req, res) => {
     let responseSent = false;
     let codeRequested = false;
     let connectionClosed = false;
+    let pairTimer = null;
+    let safetyTimer = null;
 
     const sendResponse = (status, data) => {
         if (!responseSent && !res.headersSent) {
@@ -98,54 +100,65 @@ app.get('/pair', async (req, res) => {
 
             console.log('Connection update:', connection);
 
-            if (connection === 'connecting' && !codeRequested) {
-                if (state.creds.registered) return;
-
+            // Request pairing code after socket initialization.
+            if (
+                connection === 'connecting' &&
+                !codeRequested &&
+                !state.creds.registered
+            ) {
                 codeRequested = true;
 
-                try {
-                    const code = await wa.requestPairingCode(number);
-
+                pairTimer = setTimeout(async () => {
                     if (connectionClosed) return;
 
-                    pair_x.set(id, {
-                        status: 'waiting',
-                        code,
-                        sessionId: null,
-                        message: 'Waiting for WhatsApp pairing'
-                    });
-
-                    sendResponse(200, {
-                        ok: true,
-                        requestId: id,
-                        code
-                    });
-
-                    console.log('Pairing code generated:', id);
-
-                } catch (error) {
-                    console.error('Pairing code error:', error);
-
-                    pair_x.set(id, {
-                        status: 'error',
-                        sessionId: null,
-                        message: error.message
-                    });
-
-                    sendResponse(500, {
-                        ok: false,
-                        message: error.message
-                    });
-
-                    sessions.delete(id);
-
                     try {
-                        wa.end(error);
-                    } catch (_) {}
-                }
+                        const code = await wa.requestPairingCode(number);
+
+                        if (connectionClosed) return;
+
+                        pair_x.set(id, {
+                            status: 'waiting',
+                            code,
+                            sessionId: null,
+                            message: 'Waiting for WhatsApp pairing'
+                        });
+
+                        sendResponse(200, {
+                            ok: true,
+                            requestId: id,
+                            code
+                        });
+
+                        console.log('Pairing code generated:', id);
+
+                    } catch (error) {
+                        console.error('Pairing code error:', error);
+
+                        pair_x.set(id, {
+                            status: 'error',
+                            sessionId: null,
+                            message: error.message
+                        });
+
+                        sendResponse(500, {
+                            ok: false,
+                            message: error.message
+                        });
+
+                        sessions.delete(id);
+
+                        try {
+                            wa.end(error);
+                        } catch (_) {}
+                    }
+                }, 3000);
             }
 
+            // WhatsApp connected.
             if (connection === 'open') {
+                if (pairTimer) clearTimeout(pairTimer);
+                if (safetyTimer) clearTimeout(safetyTimer);
+
                 try {
                     await saveCreds();
 
@@ -155,7 +168,7 @@ app.get('/pair', async (req, res) => {
                         message: 'WhatsApp connected successfully'
                     });
 
-                    console.log('WhatsApp connected successfully:', id);
+                    console.log('WhatsApp connected:', id);
 
                     await wa.sendMessage(wa.user.id, {
                         text:
@@ -170,8 +183,12 @@ app.get('/pair', async (req, res) => {
                 }
             }
 
+            // WhatsApp disconnected.
             if (connection === 'close') {
                 connectionClosed = true;
+
+                if (pairTimer) clearTimeout(pairTimer);
+                if (safetyTimer) clearTimeout(safetyTimer);
 
                 const status =
                     lastDisconnect?.error?.output?.statusCode;
@@ -188,7 +205,8 @@ app.get('/pair', async (req, res) => {
                     pair_x.set(id, {
                         status: 'disconnected',
                         sessionId: null,
-                        message: 'WhatsApp connection disconnected'
+                        message: 'WhatsApp connection disconnected',
+                        disconnectCode: status || null
                     });
                 }
 
@@ -198,35 +216,37 @@ app.get('/pair', async (req, res) => {
                     lastDisconnect?.error
                 );
 
-                if (!responseSent) {
-                    sendResponse(503, {
-                        ok: false,
-                        message: 'WhatsApp disconnected before pairing'
-                    });
-                }
+                sendResponse(503, {
+                    ok: false,
+                    message: 'WhatsApp disconnected before pairing',
+                    disconnectCode: status || null
+                });
             }
         });
 
-        // Safety timeout if the socket never connects.
-        setTimeout(() => {
+        // Safety timeout.
+        safetyTimer = setTimeout(() => {
             if (!responseSent && !connectionClosed) {
-                sendResponse(504, {
-                    ok: false,
-                    message: 'WhatsApp connection timed out'
-                });
-
                 pair_x.set(id, {
                     status: 'timeout',
                     sessionId: null,
                     message: 'Connection timed out'
                 });
 
-                console.error('Pairing connection timed out:', id);
+                sendResponse(504, {
+                    ok: false,
+                    message: 'WhatsApp connection timed out'
+                });
+
+                console.error('Pairing timeout:', id);
             }
         }, 30000);
 
     } catch (error) {
         console.error('Pair route error:', error);
+
+        if (pairTimer) clearTimeout(pairTimer);
+        if (safetyTimer) clearTimeout(safetyTimer);
 
         if (id) {
             sessions.delete(id);
@@ -245,6 +265,7 @@ app.get('/pair', async (req, res) => {
     }
 });
 
+// Pairing status.
 app.get('/pair-status', (req, res) => {
     const id = String(req.query.id || '');
 
@@ -282,4 +303,4 @@ app.use('/api', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Echo server running on port ${PORT}`);
 });
-            
+    
