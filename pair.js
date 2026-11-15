@@ -1,150 +1,196 @@
-
 const express = require('express');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const pino = require('pino');
 
 const {
-    default: WASocket,
+    default: makeWASocket,
     useMultiFileAuthState,
-    delay,
+    makeCacheableSignalKeyStore,
     Browsers,
-    makeCacheableSignalKeyStore
+    DisconnectReason,
+    jidNormalizedUser,
+    fetchLatestBaileysVersion
 } = require('@whiskeysockets/baileys');
 
-const {
-    create
-} = require('./Func/session');
+const PhoneNumber = require('awesome-phonenumber');
 
-const app = express();
-const root = process.cwd();
-const port = process.env.PORT || 8000;
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use(express.static(path.join(root, 'public')));
-
-function ToMyId(len = 16) {
-    let res = '';
-    const chars = '0123456789abcdef';
-
-    for (let i = 0; i < len; i++) {
-        res += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-
-    return res;
+const router = express.Router();
+const logger = pino({ level: 'silent' });
+const sessionRoot = path.join(process.cwd(), 'session');
+fs.mkdirSync(sessionRoot, { recursive: true });
+const activeSessions = new Set();
+function generate_SessionId() {
+    return 'echo~' + crypto.randomBytes(24).toString('base64url');
 }
 
-async function rmFile(dir) {
-    if (fs.existsSync(dir)) {
-        await fs.promises.rm(dir, {
-            recursive: true,
-            force: true
-        });
-    }
+function removeSession(sessionPath) {
+    fs.rmSync(sessionPath, {
+        recursive: true,
+        force: true
+    });
 }
 
-app.get('/pair', async (req, res) => {
-    let num = String(req.query.number || '').replace(/[^0-9]/g, '');
+function validatePhoneNumber(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (!digits) return null;
+    const parsedNumber = new PhoneNumber('+' + digits);
+    if (!parsedNumber.isValid()) return null;
+    return parsedNumber.getNumber('e164').replace('+', '');
+}
 
-    if (!num || num.length < 8 || num.length > 15) {
+router.get('/', async (req, res) => {
+    const phoneNumber = validatePhoneNumber(req.query.number);
+
+    if (!phoneNumber) {
         return res.status(400).json({
-            status: false,
-            message: 'Enter a valid phone number'
+            error: 'Please provide a valid international phone number'
         });
     }
 
-    const id = ToMyId();
-    const dir = path.join(root, 'session', id);
-
-    await fs.promises.mkdir(dir, {
-        recursive: true
-    });
-
-    const {
-        state,
-        saveCreds
-    } = await useMultiFileAuthState(dir);
-
+    const sessionId = generate_SessionId();
+    const sessionPath = path.join(sessionRoot, sessionId);
+    let socket;
+    let reconnecting = false;
     let completed = false;
+    activeSessions.add(sessionId);
+    const cleanup = () => {
+        if (completed) return;
+        completed = true;
+        activeSessions.delete(sessionId);
+        removeSession(sessionPath);
+    };
 
-    const logger = pino({
-        level: 'fatal'
-    });
-
-    const wa = WASocket({
-        auth: {
-            creds: state.creds,
-            keys: makeCacheableSignalKeyStore(
-                state.keys,
-                logger
-            )
-        },
-        logger,
-        browser: Browsers.macOS('Safari'),
-        downloadHistory: false,
-        syncFullHistory: false
-    });
-
-    wa.ev.on('creds.update', saveCreds);
-
-    wa.ev.on('connection.update', async (update) => {
-        const {
-            connection,
-            lastDisconnect
-        } = update;
-
-        if (connection === 'open' && !completed) {
-            completed = true;
-
-            await delay(3000);
-
-            const {
-                id: sessionId
-            } = await create(dir);
-
-            await wa.sendMessage(wa.user.id, {
-                text:
-                    '*WhatsApp Connected Successfully!*\n\n' +
-                    'Do not share your session ID with anyone.\n\n' +
-                    '*Session ID:*\n' + sessionId
+    async function startSession() {
+        if (completed || reconnecting) return;
+        reconnecting = true;
+        try {
+            const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+            const { version } = await fetchLatestBaileysVersion();
+            socket = makeWASocket({
+                version,
+                auth: {
+                    creds: state.creds,
+                    keys: makeCacheableSignalKeyStore(
+                        state.keys,
+                        logger
+                    )
+                },
+                logger,
+                browser: Browsers.windows('Chrome'),
+                defaultQueryTimeoutMs: 60000,
+                connectTimeoutMs: 60000,
+                keepAliveIntervalMs: 30000,
+                retryRequestDelayMs: 250,
+                maxRetries: 5
             });
 
-            console.log('Session saved:', sessionId);
+            socket.ev.on('creds.update', saveCreds);
+            socket.ev.on('connection.update', async (update) => {
+                const { connection, lastDisconnect } = update;
+                if (connection === 'open') {
+                    reconnecting = false;
+                    if (completed) return;
+                    try {
+                        const credentialsPath = path.join(
+                            sessionPath,
+                            'creds.json'
+                        );
 
-            await delay(1000);
+                        const credentials = await fs.promises.readFile(
+                            credentialsPath
+                        );
 
-            await wa.ws.close();
-            await rmFile(dir);
-        }
+                        const recipient = jidNormalizedUser(
+                            phoneNumber + '@s.whatsapp.net'
+                        );
 
-        if (connection === 'close' && !completed) {
-            const statusCode =
-                lastDisconnect?.error?.output?.statusCode;
+                        await socket.sendMessage(recipient, {
+                            document: credentials,
+                            mimetype: 'application/json',
+                            fileName: 'creds.json'
+                        });
 
-            console.log('Pairing connection closed:', statusCode);
+                        await socket.sendMessage(recipient, {
+                            image: {
+                                url: 'https://img.youtube.com/vi/-oz_u1iMgf8/maxresdefault.jpg'
+                            },
+                            caption: `*Echo*
 
-            if (statusCode === 401) {
-                await rmFile(dir);
+Keep it private`                        });
+
+                        await socket.sendMessage(recipient, {
+                            text: `Do not share this file with anybody.
+                        `});
+
+                        cleanup();
+                        console.log('Session completed successfully.');
+
+                    } catch (error) {
+                        console.error('Message delivery failed:', error.message);
+                        cleanup();
+                    }
+                }
+
+                if (connection === 'close' && !completed) {
+                    reconnecting = false;
+
+                    const statusCode =
+                        lastDisconnect?.error?.output?.statusCode;
+
+                    if (statusCode === DisconnectReason.loggedOut) {
+                        console.log('WhatsApp session logged out.');
+                        cleanup();
+                        return;
+                    }
+
+                    console.log('Connection closed. Reconnecting...');
+
+                    setTimeout(() => {
+                        if (!completed) startSession();
+                    }, 3000);
+                }
+            });
+
+            reconnecting = false;
+
+            if (!socket.authState.creds.registered) {
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                if (completed) return;
+
+                const pairingCode = await socket.requestPairingCode(
+                    phoneNumber
+                );
+
+                const formattedCode =
+                    pairingCode.match(/.{1,4}/g)?.join('-') || pairingCode;
+
+                if (!res.headersSent) {
+                    res.json({
+                        code: formattedCode,
+                        id: sessionId
+                    });
+                }
             }
+
+        } catch (error) {
+            reconnecting = false;
+
+            console.error('Session initialization failed:', error.message);
+
+            if (!res.headersSent) {
+                res.status(503).json({
+                    error: 'Unable to initialize WhatsApp session.'
+                });
+            }
+
+            cleanup();
         }
-    });
-
-    await delay(1500);
-
-    const code = await wa.requestPairingCode(num);
-
-    if (!res.headersSent) {
-        res.json({
-            status: true,
-            code,
-            message: 'Enter the code in WhatsApp Linked Devices'
-        });
     }
+
+    await startSession();
 });
 
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});
-    
+module.exports = router;
