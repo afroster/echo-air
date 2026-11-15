@@ -5,8 +5,8 @@
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node pair.js",
-    "dev": "nodemon pair.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc14",
