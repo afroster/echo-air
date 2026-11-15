@@ -3,85 +3,606 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0b0d12">
-    <title>Echo Pairing</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="theme-color" content="#080b0d">
+    <title>ECHO // Pairing Terminal</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #080b0d;
+            --panel: #0e1315;
+            --panel2: #11191a;
+            --green: #00ff9c;
+            --green-soft: rgba(0,255,156,.12);
+            --text: #e6f0ec;
+            --muted: #778782;
+            --border: rgba(0,255,156,.15);
+            --red: #ff5364;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 25px;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,255,156,.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,156,.025) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            width: 450px;
+            height: 450px;
+            background: rgba(0,255,156,.07);
+            filter: blur(130px);
+            top: -200px;
+            right: -150px;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 460px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            background: var(--green-soft);
+            border: 1px solid var(--border);
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            color: var(--green);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            font-size: 17px;
+        }
+
+        .brand-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 15px;
+            letter-spacing: 2px;
+            font-weight: 700;
+        }
+
+        .brand-name span {
+            color: var(--green);
+        }
+
+        .version {
+            font: 10px 'Space Mono', monospace;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            padding: 7px 10px;
+            border-radius: 5px;
+        }
+
+        .card {
+            background: linear-gradient(145deg, #101718, #0b1011);
+            border: 1px solid var(--border);
+            border-radius: 17px;
+            padding: 30px;
+            box-shadow: 0 20px 80px rgba(0,0,0,.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 30px;
+            right: 30px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--green), transparent);
+            opacity: .6;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,255,156,.06);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 7px 11px;
+            color: var(--green);
+            font: 10px 'Space Mono', monospace;
+            margin-bottom: 24px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--green);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            50% { opacity: .3; }
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 25px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        h1 span {
+            color: var(--green);
+        }
+
+        .description {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.8;
+            margin-bottom: 29px;
+        }
+
+        .section-label {
+            font: 10px 'Space Mono', monospace;
+            color: #a0b3ac;
+            letter-spacing: 1px;
+            margin-bottom: 11px;
+            display: block;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            background: #080d0e;
+            border: 1px solid #263633;
+            border-radius: 9px;
+            padding: 0 15px;
+            transition: .25s;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(0,255,156,.07);
+        }
+
+        .input-prefix {
+            color: var(--green);
+            font: 13px 'Space Mono', monospace;
+            margin-right: 10px;
+        }
+
+        input {
+            width: 100%;
+            height: 53px;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: white;
+            font: 13px 'Space Mono', monospace;
+        }
+
+        input::placeholder {
+            color: #52615c;
+        }
+
+        .hint {
+            color: #64736e;
+            font-size: 11px;
+            margin-top: 9px;
+            line-height: 1.6;
+        }
+
+        .generate-btn {
+            width: 100%;
+            height: 53px;
+            border: none;
+            border-radius: 9px;
+            margin-top: 23px;
+            background: var(--green);
+            color: #03110b;
+            font: 700 11px 'Space Mono', monospace;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: .25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .generate-btn:hover {
+            background: #5dffc0;
+            box-shadow: 0 0 25px rgba(0,255,156,.2);
+            transform: translateY(-2px);
+        }
+
+        .generate-btn:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            display: none;
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 11px;
+            background: rgba(0,255,156,.035);
+            border: 1px solid var(--border);
+            animation: appear .35s ease;
+        }
+
+        @keyframes appear {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 17px;
+        }
+
+        .result-heading span:first-child {
+            font: 10px 'Space Mono', monospace;
+            color: var(--green);
+        }
+
+        .success-label {
+            color: var(--green);
+            font: 9px 'Space Mono', monospace;
+        }
+
+        .pair-code {
+            font: 700 24px 'Space Mono', monospace;
+            color: white;
+            letter-spacing: 3px;
+            text-align: center;
+            padding: 18px 5px;
+            background: #080d0e;
+            border: 1px dashed rgba(0,255,156,.3);
+            border-radius: 8px;
+            word-break: break-word;
+        }
+
+        .copy-btn {
+            width: 100%;
+            background: var(--green-soft);
+            color: var(--green);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            height: 42px;
+            margin-top: 13px;
+            cursor: pointer;
+            font: 11px 'Space Mono', monospace;
+            transition: .2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(0,255,156,.18);
+        }
+
+        .session-info {
+            margin-top: 17px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+
+        .session-info small {
+            display: block;
+            color: var(--muted);
+            font: 9px 'Space Mono', monospace;
+            margin-bottom: 8px;
+        }
+
+        .session-id {
+            color: #b3c9bf;
+            font: 10px 'Space Mono', monospace;
+            word-break: break-all;
+            line-height: 1.8;
+        }
+
+        .message {
+            display: none;
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 7px;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .message.error {
+            display: block;
+            background: rgba(255,83,100,.08);
+            border: 1px solid rgba(255,83,100,.2);
+            color: var(--red);
+        }
+
+        .message.loading {
+            display: block;
+            background: rgba(0,255,156,.05);
+            border: 1px solid var(--border);
+            color: var(--green);
+        }
+
+        .instructions {
+            margin-top: 23px;
+            padding: 17px;
+            background: #0a1011;
+            border: 1px solid rgba(255,255,255,.05);
+            border-radius: 10px;
+        }
+
+        .instructions h3 {
+            font: 10px 'Space Mono', monospace;
+            color: var(--green);
+            margin-bottom: 13px;
+            letter-spacing: 1px;
+        }
+
+        .step {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            margin-top: 11px;
+            color: #91a19a;
+            font-size: 11px;
+            line-height: 1.7;
+        }
+
+        .step-number {
+            color: var(--green);
+            font: 11px 'Space Mono', monospace;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            color: #586760;
+            font: 9px 'Space Mono', monospace;
+            letter-spacing: 1px;
+        }
+
+        .footer span {
+            color: var(--green);
+        }
+
+        @media(max-width: 480px) {
+            body {
+                padding: 17px;
+            }
+
+            .card {
+                padding: 23px 19px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .pair-code {
+                font-size: 21px;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
     <main class="container">
 
-        <header class="header">
-            <a href="/" class="logo">echo<span>.</span></a>
-
-            <button class="theme-btn" id="themeBtn">
-                Light mode
-            </button>
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon">E</div>
+                <div class="brand-name">ECHO<span>.</span></div>
+            </div>
+            <div class="version">SYSTEM V1.0</div>
         </header>
 
-        <section class="pair-card">
+        <section class="card">
 
-            <div class="card-top">
-                <div class="icon">E</div>
-                <span class="status">
-                    <span class="dot"></span>
-                    WhatsApp Pairing
-                </span>
+            <div class="status">
+                <span class="status-dot"></span>
+                SYSTEM OPERATIONAL
             </div>
 
-            <h1>Link your WhatsApp</h1>
+            <h1>WhatsApp <span>Pairing</span></h1>
 
             <p class="description">
-                Enter your WhatsApp number to generate a pairing code.
+                Connect your WhatsApp account using a secure pairing code.
+                Enter your phone number to initialize a new session.
             </p>
 
             <form id="pairForm">
 
-                <label for="number">Phone number</label>
+                <label class="section-label">PHONE NUMBER</label>
 
-                <input
-                    type="tel"
-                    id="number"
-                    placeholder="+27686881509"
-                    autocomplete="tel"
-                    required
-                >
+                <div class="input-wrapper">
+                    <span class="input-prefix">+</span>
+                    <input
+                        type="tel"
+                        id="phoneNumber"
+                        placeholder="263771234567"
+                        autocomplete="tel"
+                        required
+                    >
+                </div>
 
-                <small>
-                    Include your country code without the + sign.
-                </small>
+                <p class="hint">
+                    Enter your full international number without spaces or symbols.
+                </p>
 
-                <button type="submit" id="generateBtn">
-                    Generate code
+                <button type="submit" class="generate-btn" id="generateBtn">
+                    <span id="btnText">GENERATE PAIRING CODE</span>
+                    <span id="btnArrow">→</span>
                 </button>
 
             </form>
 
-            <div class="message" id="message"></div>
+            <div id="message" class="message"></div>
 
             <div class="result" id="result">
 
-                <span class="result-label">Your pairing code</span>
-
-                <div class="code-box">
-                    <span id="pairCode">--------</span>
-                    <button type="button" id="copyBtn">Copy</button>
+                <div class="result-heading">
+                    <span>PAIRING CODE</span>
+                    <span class="success-label">● GENERATED</span>
                 </div>
 
-                <p>
-                    Open WhatsApp → Linked Devices → Link with phone number.
-                </p>
+                <div class="pair-code" id="pairCode">----</div>
 
+                <button class="copy-btn" id="copyBtn">
+                    COPY PAIRING CODE
+                </button>
+
+                <div class="session-info">
+                    <small>SESSION IDENTIFIER</small>
+                    <div class="session-id" id="sessionId"></div>
+                </div>
+
+            </div>
+
+            <div class="instructions">
+                <h3>HOW TO CONNECT</h3>
+
+                <div class="step">
+                    <span class="step-number">01</span>
+                    <span>Enter your WhatsApp number with the country code.</span>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">02</span>
+                    <span>Generate and copy your pairing code.</span>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">03</span>
+                    <span>Open WhatsApp → Linked Devices → Link with phone number.</span>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">04</span>
+                    <span>Enter the pairing code displayed above.</span>
+                </div>
             </div>
 
         </section>
 
-        <footer>
-            <p>Echo </p>
+        <footer class="footer">
+            POWERED BY <span>ECHO SYSTEMS</span> · SECURE CONNECTION
         </footer>
 
     </main>
 
-    <script src="script.js"></script>
+    <script>
+        const form = document.getElementById('pairForm');
+        const phoneInput = document.getElementById('phoneNumber');
+        const generateBtn = document.getElementById('generateBtn');
+        const btnText = document.getElementById('btnText');
+        const btnArrow = document.getElementById('btnArrow');
+        const message = document.getElementById('message');
+        const result = document.getElementById('result');
+        const pairCode = document.getElementById('pairCode');
+        const sessionId = document.getElementById('sessionId');
+        const copyBtn = document.getElementById('copyBtn');
+        const API_ENDPOINT = '/pair';
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const number = phoneInput.value.trim();
+           if (!number) return;
+            generateBtn.disabled = true;
+            btnText.textContent = 'INITIALIZING SESSION...';
+            btnArrow.textContent = '◌';
+
+            message.className = 'message loading';
+            message.textContent = 'Establishing connection. Please wait...';
+
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch(
+                    `${API_ENDPOINT}?number=${encodeURIComponent(number)}`
+                );
+
+                const data = await response.json();
+
+                if (!response.ok || !data.code) {
+                    throw new Error(data.error || data.code || 'Pairing request failed.');
+                }
+
+                pairCode.textContent = data.code;
+                sessionId.textContent = data.id || 'Session identifier unavailable';
+
+                result.style.display = 'block';
+
+                message.className = 'message loading';
+                message.textContent = 'Pairing code generated successfully. Complete the linking process on WhatsApp.';
+
+            } catch (error) {
+                message.className = 'message error';
+                message.textContent = error.message || 'Unable to connect to the server.';
+            } finally {
+                generateBtn.disabled = false;
+                btnText.textContent = 'GENERATE PAIRING CODE';
+                btnArrow.textContent = '→';
+            }
+        });
+
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(pairCode.textContent);
+                copyBtn.textContent = 'COPIED SUCCESSFULLY';
+
+                setTimeout(() => {
+                    copyBtn.textContent = 'COPY PAIRING CODE';
+                }, 2000);
+            } catch (error) {
+                copyBtn.textContent = 'COPY FAILED';
+            }
+        });
+    </script>
+
 </body>
 </html>
