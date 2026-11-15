@@ -1,0 +1,250 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #0b0d12;
+    --card: #12151d;
+    --input: #0c0f16;
+    --border: #252a36;
+    --text: #f4f5f7;
+    --muted: #9298a7;
+    --accent: #8b7cff;
+    --accent-hover: #7665f5;
+}
+
+body.light {
+    --bg: #f4f5f9;
+    --card: #ffffff;
+    --input: #f5f6fa;
+    --border: #e2e4eb;
+    --text: #171923;
+    --muted: #737887;
+    --accent: #6957ed;
+    --accent-hover: #5845db;
+}
+
+body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Arial, sans-serif;
+    transition: background 0.25s, color 0.25s;
+}
+
+.container {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    margin: auto;
+    padding: 25px 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: auto;
+}
+
+.logo {
+    font-size: 25px;
+    font-weight: 800;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.logo span {
+    color: var(--accent);
+}
+
+.theme-btn {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 13px;
+    cursor: pointer;
+}
+
+.pair-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 25px;
+    width: 100%;
+    margin: 40px auto;
+}
+
+.card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+}
+
+.icon {
+    width: 43px;
+    height: 43px;
+    background: var(--accent);
+    color: white;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    font-size: 23px;
+    font-weight: bold;
+}
+
+.status {
+    color: var(--muted);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.dot {
+    width: 7px;
+    height: 7px;
+    background: #36c98a;
+    border-radius: 50%;
+}
+
+h1 {
+    font-size: 25px;
+    margin-bottom: 10px;
+}
+
+.description {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+}
+
+label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+input {
+    width: 100%;
+    padding: 15px;
+    background: var(--input);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    outline: none;
+    font-size: 15px;
+}
+
+input:focus {
+    border-color: var(--accent);
+}
+
+small {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 9px;
+}
+
+#generateBtn {
+    width: 100%;
+    padding: 15px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 9px;
+    margin-top: 23px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#generateBtn:hover {
+    background: var(--accent-hover);
+}
+
+#generateBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.message {
+    display: none;
+    margin-top: 18px;
+    font-size: 13px;
+    color: #f0a35a;
+    line-height: 1.5;
+}
+
+.result {
+    display: none;
+    margin-top: 25px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+}
+
+.result-label {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.code-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 13px;
+    margin-top: 12px;
+}
+
+#pairCode {
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 3px;
+}
+
+#copyBtn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 9px 13px;
+    border-radius: 7px;
+    cursor: pointer;
+}
+
+.result p {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+    margin-top: 14px;
+}
+
+footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: auto;
+    padding-top: 20px;
+}
+
+@media (max-width: 400px) {
+    .pair-card {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+  }
+      
