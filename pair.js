@@ -16,7 +16,7 @@ const {
 
 const PhoneNumber = require('awesome-phonenumber');
 
-const router = express.Router();
+
 const logger = pino({ level: 'silent' });
 const sessionRoot = path.join(process.cwd(), 'session');
 fs.mkdirSync(sessionRoot, { recursive: true });
@@ -39,6 +39,9 @@ function validatePhoneNumber(value) {
     if (!parsedNumber.isValid()) return null;
     return parsedNumber.getNumber('e164').replace('+', '');
 }
+
+
+const router = express.Router();
 
 router.get('/', async (req, res) => {
     const phoneNumber = validatePhoneNumber(req.query.number);
