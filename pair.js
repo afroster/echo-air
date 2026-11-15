@@ -23,6 +23,8 @@ const port = process.env.PORT || 8000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(express.static(path.join(root, 'public')));
+
 function ToMyId(len = 16) {
     let res = '';
     const chars = '0123456789abcdef';
