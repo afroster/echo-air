@@ -23,9 +23,7 @@ router.get('/', async (req, res) => {
     let x_num = req.query.number;
 
     if (!x_num) {
-        return res.status(400).json({
-            error: 'Please provide a phone number.'
-        });
+        return res.status(400).send('Please provide a phone number.');
     }
 
     x_num = x_num.replace(/[^0-9]/g, '');
@@ -33,9 +31,7 @@ router.get('/', async (req, res) => {
     const x_phone = pn('+' + x_num);
 
     if (!x_phone.isValid()) {
-        return res.status(400).json({
-            error: 'Invalid phone number. Enter your full international number.'
-        });
+        return res.status(400).send('Invalid phone number.');
     }
 
     x_num = x_phone.getNumber('e164').replace('+', '');
@@ -58,9 +54,7 @@ router.get('/', async (req, res) => {
             saveCreds
         } = await useMultiFileAuthState(x_pair);
 
-        const {
-            version
-        } = await fetchLatestBaileysVersion();
+        const { version } = await fetchLatestBaileysVersion();
 
         const x_echo = makeWASocket({
             version,
@@ -147,26 +141,22 @@ router.get('/', async (req, res) => {
             console.log('Pairing code:', x_formatted);
 
             if (!res.headersSent) {
-                return res.status(200).json({
-                    code: x_formatted,
-                    id: x_session
-                });
+                return res.status(200).send(x_formatted);
             }
         } else {
-            return res.status(400).json({
-                error: 'Session is already registered.'
-            });
+            return res.status(400).send('Session is already registered.');
         }
 
     } catch (error) {
         console.error('Echo initialization error:', error);
 
         if (!res.headersSent) {
-            return res.status(503).json({
-                error: 'Failed to generate pairing code. Please try again.'
-            });
+            return res.status(503).send(
+                'Failed to generate pairing code. Please try again.'
+            );
         }
     }
 });
 
 module.exports = router;
+        
