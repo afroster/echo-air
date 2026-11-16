@@ -28,7 +28,6 @@ const x_logger = pino({
 router.get('/', async (req, res) => {
     let x_num = req.query.number;
     let x_socket;
-
     let x_pair;
 
     try {
@@ -63,7 +62,7 @@ router.get('/', async (req, res) => {
         });
 
         if (typeof makeWASocket !== 'function') {
-            throw new Error('makeWASocket is not available. Check your Baileys installation.');
+            throw new Error('makeWASocket is not a function. Check your Baileys version.');
         }
 
         const {
@@ -146,7 +145,7 @@ router.get('/', async (req, res) => {
                     console.log('Echo session sent successfully.');
 
                 } catch (x_error) {
-                    console.error('Echo session delivery error:', x_error);
+                    console.error('Echo session delivery error:', x_error.stack || x_error);
                 }
             }
 
@@ -188,11 +187,11 @@ router.get('/', async (req, res) => {
                 }
 
             } catch (x_error) {
-                console.error('Echo pairing code error:', x_error);
+                console.error('ECHO PAIRING CODE ERROR:', x_error.stack || x_error);
 
                 if (!res.headersSent) {
                     return res.status(503).json({
-                        code: 'Failed to get pairing code. Please try again.'
+                        code: x_error.message || 'Failed to get pairing code.'
                     });
                 }
             }
@@ -204,7 +203,9 @@ router.get('/', async (req, res) => {
         }
 
     } catch (x_error) {
-        console.error('ECHO PAIRING ERROR:', x_error);
+        console.error('========== ECHO PAIRING ERROR ==========');
+        console.error(x_error.stack || x_error);
+        console.error('========================================');
 
         if (x_socket) {
             try {
@@ -227,7 +228,7 @@ router.get('/', async (req, res) => {
 
         if (!res.headersSent) {
             return res.status(500).json({
-                code: 'Echo pairing failed. Check server logs.'
+                code: x_error.message || 'Unknown pairing error'
             });
         }
     }
