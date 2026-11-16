@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +15,6 @@
         :root {
             --bg: #080b0d;
             --panel: #0e1315;
-            --panel2: #11191a;
             --green: #00ff9c;
             --green-soft: rgba(0,255,156,.12);
             --text: #e6f0ec;
@@ -345,6 +345,18 @@
             line-height: 1.8;
         }
 
+        .copy-session {
+            width: 100%;
+            background: transparent;
+            color: var(--green);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            height: 38px;
+            margin-top: 10px;
+            cursor: pointer;
+            font: 10px 'Space Mono', monospace;
+        }
+
         .message {
             display: none;
             margin-top: 16px;
@@ -500,6 +512,10 @@
                 <div class="session-info">
                     <small>SESSION IDENTIFIER</small>
                     <div class="session-id" id="sessionId"></div>
+
+                    <button class="copy-session" id="copySession">
+                        COPY SESSION ID
+                    </button>
                 </div>
 
             </div>
@@ -537,69 +553,90 @@
     </main>
 
     <script>
-        const form = document.getElementById('pairForm');
-        const phoneInput = document.getElementById('phoneNumber');
-        const generateBtn = document.getElementById('generateBtn');
-        const btnText = document.getElementById('btnText');
-        const btnArrow = document.getElementById('btnArrow');
-        const message = document.getElementById('message');
-        const result = document.getElementById('result');
-        const pairCode = document.getElementById('pairCode');
-        const sessionId = document.getElementById('sessionId');
-        const copyBtn = document.getElementById('copyBtn');
-        const API_ENDPOINT = '/pair';
-        form.addEventListener('submit', async (event) => {
+        const x_form = document.getElementById('pairForm');
+        const x_phone = document.getElementById('phoneNumber');
+        const x_btn = document.getElementById('generateBtn');
+        const x_btnText = document.getElementById('btnText');
+        const x_btnArrow = document.getElementById('btnArrow');
+        const x_message = document.getElementById('message');
+        const x_result = document.getElementById('result');
+        const x_code = document.getElementById('pairCode');
+        const x_session = document.getElementById('sessionId');
+        const x_copy = document.getElementById('copyBtn');
+        const x_copySession = document.getElementById('copySession');
+
+        const x_api = '/pair';
+
+        x_form.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const number = phoneInput.value.trim();
-           if (!number) return;
-            generateBtn.disabled = true;
-            btnText.textContent = 'INITIALIZING SESSION...';
-            btnArrow.textContent = '◌';
 
-            message.className = 'message loading';
-            message.textContent = 'Establishing connection. Please wait...';
+            const x_number = x_phone.value.trim();
 
-            result.style.display = 'none';
+            if (!x_number) return;
+
+            x_btn.disabled = true;
+            x_btnText.textContent = 'INITIALIZING SESSION...';
+            x_btnArrow.textContent = '◌';
+
+            x_message.className = 'message loading';
+            x_message.textContent = 'Establishing connection. Please wait...';
+
+            x_result.style.display = 'none';
 
             try {
-                const response = await fetch(
-                    `${API_ENDPOINT}?number=${encodeURIComponent(number)}`
+                const x_response = await fetch(
+                    `${x_api}?number=${encodeURIComponent(x_number)}`
                 );
 
-                const data = await response.json();
+                const x_data = await x_response.json();
 
-                if (!response.ok || !data.code) {
-                    throw new Error(data.error || data.code || 'Pairing request failed.');
+                if (!x_response.ok || !x_data.code) {
+                    throw new Error(
+                        x_data.error || x_data.code || 'Pairing request failed.'
+                    );
                 }
 
-                pairCode.textContent = data.code;
-                sessionId.textContent = data.id || 'Session identifier unavailable';
+                x_code.textContent = x_data.code;
+                x_session.textContent = x_data.id || 'Session ID unavailable';
 
-                result.style.display = 'block';
+                x_result.style.display = 'block';
 
-                message.className = 'message loading';
-                message.textContent = 'Pairing code generated successfully. Complete the linking process on WhatsApp.';
+                x_message.className = 'message loading';
+                x_message.textContent = 'Pairing code generated successfully. Complete the linking process on WhatsApp.';
 
             } catch (error) {
-                message.className = 'message error';
-                message.textContent = error.message || 'Unable to connect to the server.';
+                x_message.className = 'message error';
+                x_message.textContent = error.message || 'Unable to connect to the server.';
             } finally {
-                generateBtn.disabled = false;
-                btnText.textContent = 'GENERATE PAIRING CODE';
-                btnArrow.textContent = '→';
+                x_btn.disabled = false;
+                x_btnText.textContent = 'GENERATE PAIRING CODE';
+                x_btnArrow.textContent = '→';
             }
         });
 
-        copyBtn.addEventListener('click', async () => {
+        x_copy.addEventListener('click', async () => {
             try {
-                await navigator.clipboard.writeText(pairCode.textContent);
-                copyBtn.textContent = 'COPIED SUCCESSFULLY';
+                await navigator.clipboard.writeText(x_code.textContent);
+                x_copy.textContent = 'COPIED SUCCESSFULLY';
 
                 setTimeout(() => {
-                    copyBtn.textContent = 'COPY PAIRING CODE';
+                    x_copy.textContent = 'COPY PAIRING CODE';
                 }, 2000);
             } catch (error) {
-                copyBtn.textContent = 'COPY FAILED';
+                x_copy.textContent = 'COPY FAILED';
+            }
+        });
+
+        x_copySession.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(x_session.textContent);
+                x_copySession.textContent = 'COPIED SUCCESSFULLY';
+
+                setTimeout(() => {
+                    x_copySession.textContent = 'COPY SESSION ID';
+                }, 2000);
+            } catch (error) {
+                x_copySession.textContent = 'COPY FAILED';
             }
         });
     </script>
