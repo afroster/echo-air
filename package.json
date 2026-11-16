@@ -9,7 +9,7 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "@whiskeysockets/baileys": "^6.7.21",
     "awesome-phonenumber": "^7.8.0",
     "axios": "^1.13.2",
     "dotenv": "^16.4.5",
