@@ -5,82 +5,91 @@ const crypto = require('crypto');
 const pino = require('pino');
 
 const {
-    default: makeWASocket,
+    makeWASocket,
     useMultiFileAuthState,
+    delay,
     makeCacheableSignalKeyStore,
     Browsers,
-    DisconnectReason,
     jidNormalizedUser,
     fetchLatestBaileysVersion
 } = require('@whiskeysockets/baileys');
 
-const PhoneNumber = require('awesome-phonenumber');
-
-
-const logger = pino({ level: 'silent' });
-const sessionRoot = path.join(process.cwd(), 'session');
-fs.mkdirSync(sessionRoot, { recursive: true });
-const activeSessions = new Set();
-function generate_SessionId() {
-    return 'echo~' + crypto.randomBytes(24).toString('base64url');
-}
-
-function removeSession(sessionPath) {
-    fs.rmSync(sessionPath, {
-        recursive: true,
-        force: true
-    });
-}
-
-function validatePhoneNumber(value) {
-    const digits = String(value || '').replace(/\D/g, '');
-    if (!digits) return null;
-    const parsedNumber = new PhoneNumber('+' + digits);
-    if (!parsedNumber.isValid()) return null;
-    return parsedNumber.getNumber('e164').replace('+', '');
-}
-
+const pn = require('awesome-phonenumber');
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
-    const phoneNumber = validatePhoneNumber(req.query.number);
+function removeFile(x_path) {
+    try {
+        if (!fs.existsSync(x_path)) return false;
 
-    if (!phoneNumber) {
-        return res.status(400).json({
-            error: 'Please provide a valid international phone number'
+        fs.rmSync(x_path, {
+            recursive: true,
+            force: true
+        });
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+router.get('/', async (req, res) => {
+    let x_num = req.query.number;
+
+    if (!x_num) {
+        return res.status(400).send({
+            code: 'Please provide a phone number'
         });
     }
 
-    const sessionId = generate_SessionId();
-    const sessionPath = path.join(sessionRoot, sessionId);
-    let socket;
-    let reconnecting = false;
-    let completed = false;
-    activeSessions.add(sessionId);
-    const cleanup = () => {
-        if (completed) return;
-        completed = true;
-        activeSessions.delete(sessionId);
-        removeSession(sessionPath);
-    };
+    x_num = x_num.replace(/[^0-9]/g, '');
 
-    async function startSession() {
-        if (completed || reconnecting) return;
-        reconnecting = true;
+    const x_phone = pn('+' + x_num);
+
+    if (!x_phone.isValid()) {
+        return res.status(400).send({
+            code: 'Invalid phone number. Enter your full international number.'
+        });
+    }
+
+    x_num = x_phone.getNumber('e164').replace('+', '');
+
+    const x_session = 'echo~' + crypto.randomBytes(24).toString('hex');
+
+    const x_pair = path.join(
+        process.cwd(),
+        'session',
+        x_session
+    );
+
+    async function x_connect() {
+        const {
+            state,
+            saveCreds
+        } = await useMultiFileAuthState(x_pair);
+
         try {
-            const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-            const { version } = await fetchLatestBaileysVersion();
-            socket = makeWASocket({
+            const {
+                version
+            } = await fetchLatestBaileysVersion();
+
+            const x_echo = makeWASocket({
                 version,
                 auth: {
                     creds: state.creds,
                     keys: makeCacheableSignalKeyStore(
                         state.keys,
-                        logger
+                        pino({
+                            level: 'fatal'
+                        }).child({
+                            level: 'fatal'
+                        })
                     )
                 },
-                logger,
+                printQRInTerminal: false,
+                logger: pino({
+                    level: 'fatal'
+                }).child({
+                    level: 'fatal'
+                }),
                 browser: Browsers.windows('Chrome'),
                 defaultQueryTimeoutMs: 60000,
                 connectTimeoutMs: 60000,
@@ -89,111 +98,120 @@ router.get('/', async (req, res) => {
                 maxRetries: 5
             });
 
-            socket.ev.on('creds.update', saveCreds);
-            socket.ev.on('connection.update', async (update) => {
-                const { connection, lastDisconnect } = update;
+            x_echo.ev.on('creds.update', saveCreds);
+
+            x_echo.ev.on('connection.update', async (update) => {
+                const {
+                    connection,
+                    lastDisconnect,
+                    isNewLogin,
+                    isOnline
+                } = update;
+
                 if (connection === 'open') {
-                    reconnecting = false;
-                    if (completed) return;
+                    console.log('Echo connected successfully!');
+
                     try {
-                        const credentialsPath = path.join(
-                            sessionPath,
-                            'creds.json'
+                        const x_creds = fs.readFileSync(
+                            path.join(x_pair, 'creds.json')
                         );
 
-                        const credentials = await fs.promises.readFile(
-                            credentialsPath
+                        const x_jid = jidNormalizedUser(
+                            x_num + '@s.whatsapp.net'
                         );
 
-                        const recipient = jidNormalizedUser(
-                            phoneNumber + '@s.whatsapp.net'
-                        );
-
-                        await socket.sendMessage(recipient, {
-                            document: credentials,
-                            mimetype: 'application/json',
-                            fileName: 'creds.json'
+                        // Send session ID
+                        await x_echo.sendMessage(x_jid, {
+                            text: `*ECHO SESSION ID*\n\n${x_session}`
                         });
 
-                        await socket.sendMessage(recipient, {
-                            image: {
-                                url: 'https://img.youtube.com/vi/-oz_u1iMgf8/maxresdefault.jpg'
-                            },
-                            caption: `*Echo*
+                        // Send credentials file
+                        await x_echo.sendMessage(x_jid, {
+                            document: x_creds,
+                            mimetype: 'application/json',
+                            fileName: 'creds.json',
+                            caption: '*ECHO SESSION*\n\nYour session file is ready. Keep it private and do not share it.'
+                        });
 
-Keep it private`                        });
+                        console.log('Echo session and ID sent successfully.');
 
-                        await socket.sendMessage(recipient, {
-                            text: `Do not share this file with anybody.
-                        `});
+                        await delay(1000);
 
-                        cleanup();
-                        console.log('Session completed successfully.');
+                        removeFile(x_pair);
+
+                        console.log('Echo session cleaned up.');
 
                     } catch (error) {
-                        console.error('Message delivery failed:', error.message);
-                        cleanup();
+                        console.error('Error sending session:', error);
+                        removeFile(x_pair);
                     }
                 }
 
-                if (connection === 'close' && !completed) {
-                    reconnecting = false;
+                if (isNewLogin) {
+                    console.log('New login via pairing code.');
+                }
 
-                    const statusCode =
+                if (isOnline) {
+                    console.log('Echo is online.');
+                }
+
+                if (connection === 'close') {
+                    const x_status =
                         lastDisconnect?.error?.output?.statusCode;
 
-                    if (statusCode === DisconnectReason.loggedOut) {
-                        console.log('WhatsApp session logged out.');
-                        cleanup();
-                        return;
+                    if (x_status === 401) {
+                        console.log('Logged out from WhatsApp.');
+                        removeFile(x_pair);
+                    } else {
+                        console.log('Connection closed — restarting...');
+                        x_connect();
                     }
-
-                    console.log('Connection closed. Reconnecting...');
-
-                    setTimeout(() => {
-                        if (!completed) startSession();
-                    }, 3000);
                 }
             });
 
-            reconnecting = false;
+            if (!x_echo.authState.creds.registered) {
+                await delay(3000);
 
-            if (!socket.authState.creds.registered) {
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                try {
+                    let x_code = await x_echo.requestPairingCode(x_num);
 
-                if (completed) return;
+                    x_code = x_code?.match(/.{1,4}/g)?.join('-') || x_code;
 
-                const pairingCode = await socket.requestPairingCode(
-                    phoneNumber
-                );
+                    if (!res.headersSent) {
+                        console.log({
+                            number: x_num,
+                            code: x_code,
+                            session: x_session
+                        });
 
-                const formattedCode =
-                    pairingCode.match(/.{1,4}/g)?.join('-') || pairingCode;
+                        await res.send({
+                            code: x_code
+                        });
+                    }
 
-                if (!res.headersSent) {
-                    res.json({
-                        code: formattedCode,
-                        id: sessionId
-                    });
+                } catch (error) {
+                    console.error('Pairing code error:', error);
+
+                    if (!res.headersSent) {
+                        res.status(503).send({
+                            code: 'Failed to get pairing code. Please try again.'
+                        });
+                    }
                 }
             }
 
         } catch (error) {
-            reconnecting = false;
-
-            console.error('Session initialization failed:', error.message);
+            console.error('Echo initialization error:', error);
 
             if (!res.headersSent) {
-                res.status(503).json({
-                    error: 'Unable to initialize WhatsApp session.'
+                res.status(503).send({
+                    code: 'Service Unavailable'
                 });
             }
-
-            cleanup();
         }
     }
 
-    await startSession();
+    await x_connect();
 });
 
 module.exports = router;
