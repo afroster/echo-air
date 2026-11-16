@@ -1,3 +1,4 @@
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -5,7 +6,7 @@ const crypto = require('crypto');
 const pino = require('pino');
 
 const {
-    makeWASocket,
+    default: makeWASocket,
     useMultiFileAuthState,
     delay,
     makeCacheableSignalKeyStore,
@@ -18,25 +19,12 @@ const pn = require('awesome-phonenumber');
 
 const router = express.Router();
 
-function removeFile(x_path) {
-    try {
-        if (!fs.existsSync(x_path)) return false;
-
-        fs.rmSync(x_path, {
-            recursive: true,
-            force: true
-        });
-    } catch (e) {
-        console.error(e);
-    }
-}
-
 router.get('/', async (req, res) => {
     let x_num = req.query.number;
 
     if (!x_num) {
-        return res.status(400).send({
-            code: 'Please provide a phone number'
+        return res.status(400).json({
+            error: 'Please provide a phone number.'
         });
     }
 
@@ -45,8 +33,8 @@ router.get('/', async (req, res) => {
     const x_phone = pn('+' + x_num);
 
     if (!x_phone.isValid()) {
-        return res.status(400).send({
-            code: 'Invalid phone number. Enter your full international number.'
+        return res.status(400).json({
+            error: 'Invalid phone number. Enter your full international number.'
         });
     }
 
@@ -60,158 +48,125 @@ router.get('/', async (req, res) => {
         x_session
     );
 
-    async function x_connect() {
+    await fs.promises.mkdir(x_pair, {
+        recursive: true
+    });
+
+    try {
         const {
             state,
             saveCreds
         } = await useMultiFileAuthState(x_pair);
 
-        try {
+        const {
+            version
+        } = await fetchLatestBaileysVersion();
+
+        const x_echo = makeWASocket({
+            version,
+            auth: {
+                creds: state.creds,
+                keys: makeCacheableSignalKeyStore(
+                    state.keys,
+                    pino({ level: 'fatal' })
+                )
+            },
+            printQRInTerminal: false,
+            logger: pino({ level: 'fatal' }),
+            browser: Browsers.windows('Chrome'),
+            markOnlineOnConnect: false,
+            generateHighQualityLinkPreview: false,
+            defaultQueryTimeoutMs: 60000,
+            connectTimeoutMs: 60000,
+            keepAliveIntervalMs: 30000,
+            retryRequestDelayMs: 250,
+            maxRetries: 5
+        });
+
+        x_echo.ev.on('creds.update', saveCreds);
+
+        x_echo.ev.on('connection.update', async (update) => {
             const {
-                version
-            } = await fetchLatestBaileysVersion();
+                connection,
+                lastDisconnect
+            } = update;
 
-            const x_echo = makeWASocket({
-                version,
-                auth: {
-                    creds: state.creds,
-                    keys: makeCacheableSignalKeyStore(
-                        state.keys,
-                        pino({
-                            level: 'fatal'
-                        }).child({
-                            level: 'fatal'
-                        })
-                    )
-                },
-                printQRInTerminal: false,
-                logger: pino({
-                    level: 'fatal'
-                }).child({
-                    level: 'fatal'
-                }),
-                browser: Browsers.windows('Chrome'),
-                defaultQueryTimeoutMs: 60000,
-                connectTimeoutMs: 60000,
-                keepAliveIntervalMs: 30000,
-                retryRequestDelayMs: 250,
-                maxRetries: 5
-            });
-
-            x_echo.ev.on('creds.update', saveCreds);
-
-            x_echo.ev.on('connection.update', async (update) => {
-                const {
-                    connection,
-                    lastDisconnect,
-                    isNewLogin,
-                    isOnline
-                } = update;
-
-                if (connection === 'open') {
-                    console.log('Echo connected successfully!');
-
-                    try {
-                        const x_creds = fs.readFileSync(
-                            path.join(x_pair, 'creds.json')
-                        );
-
-                        const x_jid = jidNormalizedUser(
-                            x_num + '@s.whatsapp.net'
-                        );
-
-                        // Send session ID
-                        await x_echo.sendMessage(x_jid, {
-                            text: `*ECHO SESSION ID*\n\n${x_session}`
-                        });
-
-                        // Send credentials file
-                        await x_echo.sendMessage(x_jid, {
-                            document: x_creds,
-                            mimetype: 'application/json',
-                            fileName: 'creds.json',
-                            caption: '*ECHO SESSION*\n\nYour session file is ready. Keep it private and do not share it.'
-                        });
-
-                        console.log('Echo session and ID sent successfully.');
-
-                        await delay(1000);
-
-                        removeFile(x_pair);
-
-                        console.log('Echo session cleaned up.');
-
-                    } catch (error) {
-                        console.error('Error sending session:', error);
-                        removeFile(x_pair);
-                    }
-                }
-
-                if (isNewLogin) {
-                    console.log('New login via pairing code.');
-                }
-
-                if (isOnline) {
-                    console.log('Echo is online.');
-                }
-
-                if (connection === 'close') {
-                    const x_status =
-                        lastDisconnect?.error?.output?.statusCode;
-
-                    if (x_status === 401) {
-                        console.log('Logged out from WhatsApp.');
-                        removeFile(x_pair);
-                    } else {
-                        console.log('Connection closed — restarting...');
-                        x_connect();
-                    }
-                }
-            });
-
-            if (!x_echo.authState.creds.registered) {
-                await delay(3000);
+            if (connection === 'open') {
+                console.log('Echo connected successfully!');
 
                 try {
-                    let x_code = await x_echo.requestPairingCode(x_num);
+                    await saveCreds();
 
-                    x_code = x_code?.match(/.{1,4}/g)?.join('-') || x_code;
+                    const x_creds = fs.readFileSync(
+                        path.join(x_pair, 'creds.json')
+                    );
 
-                    if (!res.headersSent) {
-                        console.log({
-                            number: x_num,
-                            code: x_code,
-                            session: x_session
-                        });
+                    const x_jid = jidNormalizedUser(
+                        x_num + '@s.whatsapp.net'
+                    );
 
-                        await res.send({
-                            code: x_code
-                        });
-                    }
+                    await x_echo.sendMessage(x_jid, {
+                        text: `*ECHO SESSION ID*\n\n${x_session}`
+                    });
+
+                    await x_echo.sendMessage(x_jid, {
+                        document: x_creds,
+                        mimetype: 'application/json',
+                        fileName: 'creds.json',
+                        caption: '*ECHO SESSION*\n\nYour credentials file is ready. Keep it private.'
+                    });
+
+                    console.log('Echo credentials sent successfully.');
 
                 } catch (error) {
-                    console.error('Pairing code error:', error);
-
-                    if (!res.headersSent) {
-                        res.status(503).send({
-                            code: 'Failed to get pairing code. Please try again.'
-                        });
-                    }
+                    console.error('Error sending session:', error);
                 }
             }
 
-        } catch (error) {
-            console.error('Echo initialization error:', error);
+            if (connection === 'close') {
+                const x_status =
+                    lastDisconnect?.error?.output?.statusCode;
+
+                if (x_status === 401) {
+                    console.log('WhatsApp logged out.');
+                } else {
+                    console.log('Connection closed.');
+                }
+            }
+        });
+
+        if (!state.creds.registered) {
+            await delay(3000);
+
+            const x_code = await x_echo.requestPairingCode(x_num);
+
+            const x_formatted = x_code
+                ?.match(/.{1,4}/g)
+                ?.join('-') || x_code;
+
+            console.log('Pairing code:', x_formatted);
 
             if (!res.headersSent) {
-                res.status(503).send({
-                    code: 'Service Unavailable'
+                return res.status(200).json({
+                    code: x_formatted,
+                    id: x_session
                 });
             }
+        } else {
+            return res.status(400).json({
+                error: 'Session is already registered.'
+            });
+        }
+
+    } catch (error) {
+        console.error('Echo initialization error:', error);
+
+        if (!res.headersSent) {
+            return res.status(503).json({
+                error: 'Failed to generate pairing code. Please try again.'
+            });
         }
     }
-
-    await x_connect();
 });
 
 module.exports = router;
