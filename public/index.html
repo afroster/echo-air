@@ -470,7 +470,7 @@
 
             <form id="pairForm">
 
-                <label class="section-label">PHONE NUMBER</label>
+                <label class="section-label" for="phoneNumber">PHONE NUMBER</label>
 
                 <div class="input-wrapper">
                     <span class="input-prefix">+</span>
@@ -505,7 +505,7 @@
 
                 <div class="pair-code" id="pairCode">----</div>
 
-                <button class="copy-btn" id="copyBtn">
+                <button type="button" class="copy-btn" id="copyBtn">
                     COPY PAIRING CODE
                 </button>
 
@@ -513,7 +513,7 @@
                     <small>SESSION IDENTIFIER</small>
                     <div class="session-id" id="sessionId"></div>
 
-                    <button class="copy-session" id="copySession">
+                    <button type="button" class="copy-session" id="copySession">
                         COPY SESSION ID
                     </button>
                 </div>
@@ -553,47 +553,62 @@
     </main>
 
     <script>
-        
-const x_form = document.getElementById('pairForm');
-const x_number = document.getElementById('phoneNumber');
-const x_result = document.getElementById('result');
-const x_code = document.getElementById('pairCode');
-const x_button = document.getElementById('pairButton');
+        const x_form = document.getElementById('pairForm');
+        const x_number = document.getElementById('phoneNumber');
+        const x_result = document.getElementById('result');
+        const x_code = document.getElementById('pairCode');
+        const x_session = document.getElementById('sessionId');
+        const x_button = document.getElementById('generateBtn');
+        const x_btnText = document.getElementById('btnText');
+        const x_btnArrow = document.getElementById('btnArrow');
+        const x_message = document.getElementById('message');
 
-x_form.addEventListener('submit', async (event) => {
-    event.preventDefault();
+        const x_copy = document.getElementById('copyBtn');
+        const x_copySession = document.getElementById('copySession');
 
-    const x_num = x_number.value.replace(/[^0-9]/g, '');
+        x_form.addEventListener('submit', async (event) => {
+            event.preventDefault();
 
-    if (!x_num) {
-        alert('Enter your phone number.');
-        return;
-    }
+            const x_num = x_number.value.replace(/[^0-9]/g, '');
 
-    x_button.disabled = true;
-    x_button.textContent = 'GENERATING...';
-    x_result.style.display = 'none';
+            if (!x_num) {
+                x_message.textContent = 'Please enter your phone number.';
+                x_message.className = 'message error';
+                return;
+            }
 
-    try {
-        const x_response = await fetch(
-            `/pair?number=${encodeURIComponent(x_num)}`
-        );
+            x_button.disabled = true;
+            x_btnText.textContent = 'GENERATING...';
+            x_btnArrow.textContent = '...';
 
-        const x_data = await x_response.text();
+            x_message.textContent = 'Connecting to WhatsApp. Please wait...';
+            x_message.className = 'message loading';
+            x_result.style.display = 'none';
 
-        if (!x_response.ok) {
-            throw new Error(x_data);
-        }
+            try {
+                const x_response = await fetch(
+                    `/pair?number=${encodeURIComponent(x_num)}`
+                );
 
-        x_code.textContent = x_data;
-        x_result.style.display = 'block';
+                const x_data = await x_response.text();
 
-    } catch (error) {
-        alert(error.message || 'Pairing failed. Try again.');
-    } finally {
-        x_button.disabled = false;
-        x_button.textContent = 'GENERATE PAIRING CODE';   
-       x_btnArrow.textContent = '→';
+                if (!x_response.ok) {
+                    throw new Error(x_data);
+                }
+
+                x_code.textContent = x_data.trim();
+                x_session.textContent = 'Session ID is available in your server session folder.';
+
+                x_result.style.display = 'block';
+                x_message.style.display = 'none';
+
+            } catch (error) {
+                x_message.textContent = error.message || 'Pairing failed. Try again.';
+                x_message.className = 'message error';
+            } finally {
+                x_button.disabled = false;
+                x_btnText.textContent = 'GENERATE PAIRING CODE';
+                x_btnArrow.textContent = '→';
             }
         });
 
@@ -625,4 +640,5 @@ x_form.addEventListener('submit', async (event) => {
     </script>
 
 </body>
-</html>
+    </html>
+                    
