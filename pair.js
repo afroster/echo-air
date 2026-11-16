@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const pino = require('pino');
 
 const {
-    default: makeWASocket,
+    makeWASocket,
     useMultiFileAuthState,
     delay,
     makeCacheableSignalKeyStore,
