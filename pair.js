@@ -4,24 +4,31 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const pino = require('pino');
+const pn = require('awesome-phonenumber');
 
-const {default: makeWASocket,
+const baileys = require('@whiskeysockets/baileys');
+
+const makeWASocket = baileys.default || baileys.makeWASocket;
+
+const {
     useMultiFileAuthState,
     delay,
     makeCacheableSignalKeyStore,
     Browsers,
     jidNormalizedUser,
     fetchLatestBaileysVersion
-} = require('@whiskeysockets/baileys');
-
-const pn = require('awesome-phonenumber');
+} = baileys;
 
 const router = express.Router();
+
+const x_logger = pino({
+    level: 'fatal'
+});
 
 router.get('/', async (req, res) => {
     let x_num = req.query.number;
 
-    if (!x_num) {
+    if (!x_num || typeof x_num !== 'string') {
         return res.status(400).send('Please provide a phone number.');
     }
 
@@ -30,7 +37,9 @@ router.get('/', async (req, res) => {
     const x_phone = pn('+' + x_num);
 
     if (!x_phone.isValid()) {
-        return res.status(400).send('Invalid phone number.');
+        return res.status(400).send(
+            'Invalid phone number. Enter your full international number.'
+        );
     }
 
     x_num = x_phone.getNumber('e164').replace('+', '');
@@ -43,17 +52,23 @@ router.get('/', async (req, res) => {
         x_session
     );
 
-    await fs.promises.mkdir(x_pair, {
-        recursive: true
-    });
-
     try {
+        await fs.promises.mkdir(x_pair, {
+            recursive: true
+        });
+
         const {
             state,
             saveCreds
         } = await useMultiFileAuthState(x_pair);
 
-        const { version } = await fetchLatestBaileysVersion();
+        const {
+            version
+        } = await fetchLatestBaileysVersion();
+
+        if (typeof makeWASocket !== 'function') {
+            throw new Error('Baileys makeWASocket export is not a function.');
+        }
 
         const x_echo = makeWASocket({
             version,
@@ -61,11 +76,11 @@ router.get('/', async (req, res) => {
                 creds: state.creds,
                 keys: makeCacheableSignalKeyStore(
                     state.keys,
-                    pino({ level: 'fatal' })
+                    x_logger
                 )
             },
             printQRInTerminal: false,
-            logger: pino({ level: 'fatal' }),
+            logger: x_logger,
             browser: Browsers.windows('Chrome'),
             markOnlineOnConnect: false,
             generateHighQualityLinkPreview: false,
@@ -81,17 +96,25 @@ router.get('/', async (req, res) => {
         x_echo.ev.on('connection.update', async (update) => {
             const {
                 connection,
-                lastDisconnect
+                lastDisconnect,
+                isNewLogin,
+                isOnline
             } = update;
 
             if (connection === 'open') {
                 console.log('Echo connected successfully!');
+                console.log('Session ID:', x_session);
 
                 try {
                     await saveCreds();
 
-                    const x_creds = fs.readFileSync(
-                        path.join(x_pair, 'creds.json')
+                    const x_credsPath = path.join(
+                        x_pair,
+                        'creds.json'
+                    );
+
+                    const x_creds = await fs.promises.readFile(
+                        x_credsPath
                     );
 
                     const x_jid = jidNormalizedUser(
@@ -106,24 +129,34 @@ router.get('/', async (req, res) => {
                         document: x_creds,
                         mimetype: 'application/json',
                         fileName: 'creds.json',
-                        caption: '*ECHO SESSION*\n\nYour credentials file is ready. Keep it private.'
+                        caption:
+                            '*ECHO SESSION*\n\nYour credentials file is ready. Keep it private.'
                     });
 
-                    console.log('Echo credentials sent successfully.');
+                    console.log('Session details sent successfully.');
+                    console.log('Session files saved at:', x_pair);
 
-                } catch (error) {
-                    console.error('Error sending session:', error);
+                } catch (x_error) {
+                    console.error('Session delivery error:', x_error);
                 }
+            }
+
+            if (isNewLogin) {
+                console.log('New login via pairing code.');
+            }
+
+            if (isOnline) {
+                console.log('Echo is online.');
             }
 
             if (connection === 'close') {
                 const x_status =
                     lastDisconnect?.error?.output?.statusCode;
 
+                console.log('Connection closed. Status:', x_status);
+
                 if (x_status === 401) {
-                    console.log('WhatsApp logged out.');
-                } else {
-                    console.log('Connection closed.');
+                    console.log('WhatsApp logged out. Session:', x_session);
                 }
             }
         });
@@ -131,31 +164,34 @@ router.get('/', async (req, res) => {
         if (!state.creds.registered) {
             await delay(3000);
 
-            const x_code = await x_echo.requestPairingCode(x_num);
+            let x_code = await x_echo.requestPairingCode(x_num);
 
-            const x_formatted = x_code
-                ?.match(/.{1,4}/g)
-                ?.join('-') || x_code;
+            x_code = x_code?.match(/.{1,4}/g)?.join('-') || x_code;
 
-            console.log('Pairing code:', x_formatted);
+            console.log('Pairing code:', x_code);
+            console.log('Session ID:', x_session);
 
             if (!res.headersSent) {
-                return res.status(200).send(x_formatted);
+                return res.status(200).type('text/plain').send(x_code);
             }
         } else {
-            return res.status(400).send('Session is already registered.');
+            if (!res.headersSent) {
+                return res.status(400).type('text/plain').send(
+                    'This session is already registered.'
+                );
+            }
         }
 
-    } catch (error) {
-        console.error('Echo initialization error:', error);
+    } catch (x_error) {
+        console.error('PAIRING ERROR:', x_error);
 
         if (!res.headersSent) {
-            return res.status(503).send(
-                'Failed to generate pairing code. Please try again.'
+            return res.status(500).type('text/plain').send(
+                'Pairing failed. Check your server logs.'
             );
         }
     }
 });
 
 module.exports = router;
-        
+    
