@@ -553,64 +553,47 @@
     </main>
 
     <script>
-        const x_form = document.getElementById('pairForm');
-        const x_phone = document.getElementById('phoneNumber');
-        const x_btn = document.getElementById('generateBtn');
-        const x_btnText = document.getElementById('btnText');
-        const x_btnArrow = document.getElementById('btnArrow');
-        const x_message = document.getElementById('message');
-        const x_result = document.getElementById('result');
-        const x_code = document.getElementById('pairCode');
-        const x_session = document.getElementById('sessionId');
-        const x_copy = document.getElementById('copyBtn');
-        const x_copySession = document.getElementById('copySession');
+        
+const x_form = document.getElementById('pairForm');
+const x_number = document.getElementById('phoneNumber');
+const x_result = document.getElementById('result');
+const x_code = document.getElementById('pairCode');
+const x_button = document.getElementById('pairButton');
 
-        const x_api = '/pair';
+x_form.addEventListener('submit', async (event) => {
+    event.preventDefault();
 
-        x_form.addEventListener('submit', async (event) => {
-            event.preventDefault();
+    const x_num = x_number.value.replace(/[^0-9]/g, '');
 
-            const x_number = x_phone.value.trim();
+    if (!x_num) {
+        alert('Enter your phone number.');
+        return;
+    }
 
-            if (!x_number) return;
+    x_button.disabled = true;
+    x_button.textContent = 'GENERATING...';
+    x_result.style.display = 'none';
 
-            x_btn.disabled = true;
-            x_btnText.textContent = 'INITIALIZING SESSION...';
-            x_btnArrow.textContent = '◌';
+    try {
+        const x_response = await fetch(
+            `/pair?number=${encodeURIComponent(x_num)}`
+        );
 
-            x_message.className = 'message loading';
-            x_message.textContent = 'Establishing connection. Please wait...';
+        const x_data = await x_response.text();
 
-            x_result.style.display = 'none';
+        if (!x_response.ok) {
+            throw new Error(x_data);
+        }
 
-            try {
-                const x_response = await fetch(
-                    `${x_api}?number=${encodeURIComponent(x_number)}`
-                );
+        x_code.textContent = x_data;
+        x_result.style.display = 'block';
 
-                const x_data = await x_response.json();
-
-                if (!x_response.ok || !x_data.code) {
-                    throw new Error(
-                        x_data.error || x_data.code || 'Pairing request failed.'
-                    );
-                }
-
-                x_code.textContent = x_data.code;
-                x_session.textContent = x_data.id || 'Session ID unavailable';
-
-                x_result.style.display = 'block';
-
-                x_message.className = 'message loading';
-                x_message.textContent = 'Pairing code generated successfully. Complete the linking process on WhatsApp.';
-
-            } catch (error) {
-                x_message.className = 'message error';
-                x_message.textContent = error.message || 'Unable to connect to the server.';
-            } finally {
-                x_btn.disabled = false;
-                x_btnText.textContent = 'GENERATE PAIRING CODE';
-                x_btnArrow.textContent = '→';
+    } catch (error) {
+        alert(error.message || 'Pairing failed. Try again.');
+    } finally {
+        x_button.disabled = false;
+        x_button.textContent = 'GENERATE PAIRING CODE';   
+       x_btnArrow.textContent = '→';
             }
         });
 
