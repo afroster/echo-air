@@ -552,92 +552,177 @@
 
     </main>
 
-    <script>
-        const x_form = document.getElementById('pairForm');
-        const x_number = document.getElementById('phoneNumber');
-        const x_result = document.getElementById('result');
-        const x_code = document.getElementById('pairCode');
-        const x_session = document.getElementById('sessionId');
-        const x_button = document.getElementById('generateBtn');
-        const x_btnText = document.getElementById('btnText');
-        const x_btnArrow = document.getElementById('btnArrow');
-        const x_message = document.getElementById('message');
+    
+<script>
+    const x_form = document.getElementById('pairForm');
+    const x_number = document.getElementById('phoneNumber');
 
-        const x_copy = document.getElementById('copyBtn');
-        const x_copySession = document.getElementById('copySession');
+    const x_result = document.getElementById('result');
+    const x_code = document.getElementById('pairCode');
+    const x_session = document.getElementById('sessionId');
 
-        x_form.addEventListener('submit', async (event) => {
-            event.preventDefault();
+    const x_button = document.getElementById('generateBtn');
+    const x_btnText = document.getElementById('btnText');
+    const x_btnArrow = document.getElementById('btnArrow');
 
-            const x_num = x_number.value.replace(/[^0-9]/g, '');
+    const x_message = document.getElementById('message');
 
-            if (!x_num) {
-                x_message.textContent = 'Please enter your phone number.';
-                x_message.className = 'message error';
-                return;
-            }
+    const x_copy = document.getElementById('copyBtn');
+    const x_copySession = document.getElementById('copySession');
 
-            x_button.disabled = true;
-            x_btnText.textContent = 'GENERATING...';
-            x_btnArrow.textContent = '...';
+    // ========================================
+    // SHOW MESSAGE
+    // ========================================
 
-            x_message.textContent = 'Connecting to WhatsApp. Please wait...';
-            x_message.className = 'message loading';
-            x_result.style.display = 'none';
+    function showMessage(message, type) {
+        x_message.textContent = message;
+        x_message.className = 'message ' + type;
+        x_message.style.display = 'block';
+    }
 
-            try {
-                const x_response = await fetch(
-                    `/pair?number=${encodeURIComponent(x_num)}`
-                );
+    // ========================================
+    // GENERATE PAIRING CODE
+    // ========================================
 
-                const x_data = await x_response.text();
+    x_form.addEventListener('submit', async (event) => {
+        event.preventDefault();
 
-                if (!x_response.ok) {
-                    throw new Error(x_data);
+        const x_num = x_number.value.replace(/[^0-9]/g, '');
+
+        if (!x_num) {
+            showMessage('Please enter your WhatsApp number.', 'error');
+            return;
+        }
+
+        if (x_button.disabled) return;
+
+        x_button.disabled = true;
+
+        x_btnText.textContent = 'GENERATING...';
+        x_btnArrow.textContent = '...';
+
+        x_result.style.display = 'none';
+
+        showMessage(
+            'Connecting to WhatsApp. Please wait...',
+            'loading'
+        );
+
+        try {
+            const x_response = await fetch(
+                `/pair?number=${encodeURIComponent(x_num)}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
                 }
+            );
 
-                x_code.textContent = x_data.trim();
-                x_session.textContent = 'Session ID is available in your server session folder.';
+            const x_text = await x_response.text();
 
-                x_result.style.display = 'block';
-                x_message.style.display = 'none';
+            let x_data;
 
-            } catch (error) {
-                x_message.textContent = error.message || 'Pairing failed. Try again.';
-                x_message.className = 'message error';
-            } finally {
-                x_button.disabled = false;
-                x_btnText.textContent = 'GENERATE PAIRING CODE';
-                x_btnArrow.textContent = '→';
-            }
-        });
-
-        x_copy.addEventListener('click', async () => {
             try {
-                await navigator.clipboard.writeText(x_code.textContent);
-                x_copy.textContent = 'COPIED SUCCESSFULLY';
-
-                setTimeout(() => {
-                    x_copy.textContent = 'COPY PAIRING CODE';
-                }, 2000);
-            } catch (error) {
-                x_copy.textContent = 'COPY FAILED';
+                x_data = JSON.parse(x_text);
+            } catch {
+                throw new Error(
+                    x_text.includes('<!DOCTYPE') ||
+                    x_text.includes('<html')
+                        ? 'Server returned an HTML error. Check your backend logs.'
+                        : x_text || 'Invalid server response.'
+                );
             }
-        });
 
-        x_copySession.addEventListener('click', async () => {
-            try {
-                await navigator.clipboard.writeText(x_session.textContent);
-                x_copySession.textContent = 'COPIED SUCCESSFULLY';
-
-                setTimeout(() => {
-                    x_copySession.textContent = 'COPY SESSION ID';
-                }, 2000);
-            } catch (error) {
-                x_copySession.textContent = 'COPY FAILED';
+            if (!x_response.ok) {
+                throw new Error(
+                    x_data.code || 'Failed to generate pairing code.'
+                );
             }
-        });
-    </script>
+
+            if (!x_data.code) {
+                throw new Error('Pairing code was not returned by the server.');
+            }
+
+            // Display pairing code
+            x_code.textContent = x_data.code;
+
+            // Display session information if backend supplies it
+            x_session.textContent = x_data.session ||
+                'Session details will be sent to your WhatsApp after linking.';
+
+            x_copySession.style.display = x_data.session
+                ? 'block'
+                : 'none';
+
+            x_result.style.display = 'block';
+            x_message.style.display = 'none';
+
+        } catch (x_error) {
+            console.error('Echo pairing error:', x_error);
+
+            showMessage(
+                x_error.message || 'Unable to generate pairing code.',
+                'error'
+            );
+
+        } finally {
+            x_button.disabled = false;
+
+            x_btnText.textContent = 'GENERATE PAIRING CODE';
+            x_btnArrow.textContent = '→';
+        }
+    });
+
+    // ========================================
+    // COPY PAIRING CODE
+    // ========================================
+
+    x_copy.addEventListener('click', async () => {
+        const x_value = x_code.textContent.trim();
+
+        if (!x_value || x_value === '----') return;
+
+        try {
+            await navigator.clipboard.writeText(x_value);
+
+            x_copy.textContent = 'COPIED SUCCESSFULLY';
+
+            setTimeout(() => {
+                x_copy.textContent = 'COPY PAIRING CODE';
+            }, 2000);
+
+        } catch (x_error) {
+            console.error('Copy error:', x_error);
+            showMessage('Unable to copy pairing code.', 'error');
+        }
+    });
+
+    // ========================================
+    // COPY SESSION ID
+    // ========================================
+
+    x_copySession.addEventListener('click', async () => {
+        const x_value = x_session.textContent.trim();
+
+        if (!x_value || !x_value.startsWith('echo~')) return;
+
+        try {
+            await navigator.clipboard.writeText(x_value);
+
+            x_copySession.textContent = 'COPIED SUCCESSFULLY';
+
+            setTimeout(() => {
+                x_copySession.textContent = 'COPY SESSION ID';
+            }, 2000);
+
+        } catch (x_error) {
+            console.error('Session copy error:', x_error);
+            showMessage('Unable to copy session ID.', 'error');
+        }
+    });
+
+</script>        
 
 </body>
     </html>
