@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const pino = require('pino');
 
 const baileys = require('@whiskeysockets/baileys');
-const pn = require('awesome-phonenumber');
+const PhoneNumber = require('awesome-phonenumber');
 
 const makeWASocket = baileys.default || baileys.makeWASocket;
 
@@ -25,9 +25,8 @@ const logger = pino({
     level: 'fatal'
 });
 
-
 // ============================================
-// REMOVE FILE / DIRECTORY
+// REMOVE SESSION DIRECTORY
 // ============================================
 
 async function removeFile(filePath) {
@@ -39,59 +38,65 @@ async function removeFile(filePath) {
 
         return true;
     } catch (error) {
-        console.error('Error removing file:', error);
+        console.error('Session cleanup error:', error);
         return false;
     }
 }
-
 
 // ============================================
 // PAIRING ROUTE
 // ============================================
 
 router.get('/', async (req, res) => {
-    let num = req.query.number;
-
-    if (!num || typeof num !== 'string') {
-        return res.status(400).json({
-            code: 'Please provide a phone number.'
-        });
-    }
-
-    // Clean phone number
-    num = num.replace(/[^0-9]/g, '');
-
-    // Validate phone number
-    const phone = pn('+' + num);
-
-    if (!phone.isValid()) {
-        return res.status(400).json({
-            code: 'Invalid phone number. Please enter your full international number without + or spaces.'
-        });
-    }
-
-    // Normalize number
-    num = phone.getNumber('e164').replace('+', '');
-
-    // Generate echo~ + 49 hexadecimal characters
-    const sessionId = 'echo~' + crypto.randomBytes(25)
-        .toString('hex')
-        .slice(0, 49);
-
-    // Session directory
-    const dirs = path.join(
-        __dirname,
-        'session',
-        sessionId
-    );
-
     let socket;
+    let dirs;
 
-    // ========================================
-    // INITIATE SESSION
-    // ========================================
+    try {
+        let num = req.query.number;
 
-    async function initiateSession() {
+        if (!num || typeof num !== 'string') {
+            return res.status(400).json({
+                code: 'Please provide your WhatsApp number.'
+            });
+        }
+
+        // Clean number
+        num = num.replace(/[^0-9]/g, '');
+
+        if (!num) {
+            return res.status(400).json({
+                code: 'Invalid phone number.'
+            });
+        }
+
+        // Validate number
+        const phone = new PhoneNumber('+' + num);
+
+        if (!phone.isValid()) {
+            return res.status(400).json({
+                code: 'Invalid phone number. Enter your full international number.'
+            });
+        }
+
+        // Normalize number
+        num = phone.getNumber('e164').replace('+', '');
+
+        // Generate echo~ + 49 hexadecimal characters
+        const sessionId = 'echo~' + crypto.randomBytes(25)
+            .toString('hex')
+            .slice(0, 49);
+
+        // Session directory
+        dirs = path.join(__dirname, 'session', sessionId);
+
+        await fs.promises.mkdir(dirs, {
+            recursive: true
+        });
+
+        // ========================================
+        // AUTH STATE
+        // ========================================
+
         const {
             state,
             saveCreds
@@ -100,6 +105,10 @@ router.get('/', async (req, res) => {
         const {
             version
         } = await fetchLatestBaileysVersion();
+
+        // ========================================
+        // CREATE SOCKET
+        // ========================================
 
         socket = makeWASocket({
             version,
@@ -113,65 +122,70 @@ router.get('/', async (req, res) => {
             },
 
             printQRInTerminal: false,
-
             logger,
-
             browser: Browsers.windows('Chrome'),
-
             markOnlineOnConnect: false,
-
             generateHighQualityLinkPreview: false,
-
             defaultQueryTimeoutMs: 60000,
-
             connectTimeoutMs: 60000,
-
             keepAliveIntervalMs: 30000,
-
             retryRequestDelayMs: 250,
-
             maxRetries: 5
         });
 
-        // Save credentials
+        // Save credentials whenever updated
         socket.ev.on('creds.update', saveCreds);
 
-
-        // ====================================
+        // ========================================
         // CONNECTION UPDATE
-        // ====================================
+        // ========================================
 
         socket.ev.on('connection.update', async (update) => {
             const {
                 connection,
                 lastDisconnect,
-                isNewLogin,
-                isOnline
+                isNewLogin
             } = update;
 
-            // Connected successfully
+            // ====================================
+            // SUCCESSFULLY CONNECTED
+            // ====================================
+
             if (connection === 'open') {
-                console.log('Echo connected successfully!');
-                console.log('Sending session file...');
+                console.log('ECHO CONNECTED SUCCESSFULLY');
 
                 try {
                     await saveCreds();
 
+                    const userJid = jidNormalizedUser(
+                        num + '@s.whatsapp.net'
+                    );
+
+                    // Send session ID
+                    await socket.sendMessage(userJid, {
+                        text:
+                            '*ECHO SESSION ID*\n\n' +
+                            sessionId +
+                            '\n\nDo not share this session ID with anyone.'
+                    });
+
+                    console.log('Session ID sent successfully.');
+
+                    // Locate credentials file
                     const credsPath = path.join(
                         dirs,
                         'creds.json'
                     );
 
                     if (!fs.existsSync(credsPath)) {
-                        throw new Error('creds.json was not created.');
+                        throw new Error(
+                            'creds.json was not created.'
+                        );
                     }
 
+                    // Read credentials
                     const sessionFile = await fs.promises.readFile(
                         credsPath
-                    );
-
-                    const userJid = jidNormalizedUser(
-                        num + '@s.whatsapp.net'
                     );
 
                     // Send credentials file
@@ -181,120 +195,105 @@ router.get('/', async (req, res) => {
                         fileName: 'creds.json'
                     });
 
-                    console.log('Session file sent successfully.');
+                    console.log('Credentials file sent successfully.');
 
-                    // Send warning
+                    // Send final message
                     await socket.sendMessage(userJid, {
                         text:
-                            'Do not share this file with anybody.\n\n' +
-                            'Thanks for using Echo.'
+                            '*ECHO CONNECTION SUCCESSFUL*\n\n' +
+                            'Your session ID and credentials have been sent.\n\n' +
+                            'Keep them private and do not share them with anyone.\n\n' +
+                            'Thank you for using Echo.'
                     });
 
-                    console.log('Warning message sent successfully.');
+                    console.log('ECHO SESSION COMPLETED');
 
-                    // Cleanup
-                    await delay(1000);
+                    // Close socket
+                    await delay(1500);
 
+                    socket.end(undefined);
+
+                    // Remove temporary session directory
                     await removeFile(dirs);
 
-                    console.log('Echo session completed successfully.');
-
                 } catch (error) {
-                    console.error('Error sending session:', error);
+                    console.error(
+                        'ECHO SESSION DELIVERY ERROR:',
+                        error.stack || error
+                    );
                 }
             }
 
             if (isNewLogin) {
-                console.log('New login via pairing code.');
+                console.log('New WhatsApp login detected.');
             }
 
-            if (isOnline) {
-                console.log('Echo is online.');
-            }
+            // ====================================
+            // CONNECTION CLOSED
+            // ====================================
 
-            // Connection closed
             if (connection === 'close') {
                 const statusCode =
                     lastDisconnect?.error?.output?.statusCode;
 
-                console.log('Echo connection closed:', statusCode);
+                console.log(
+                    'ECHO CONNECTION CLOSED:',
+                    statusCode
+                );
 
                 if (statusCode === 401) {
                     console.log('WhatsApp logged out.');
+
                     await removeFile(dirs);
                 } else {
-                    console.log('Echo connection closed. Reconnecting...');
-
-                    if (fs.existsSync(dirs)) {
-                        try {
-                            await initiateSession();
-                        } catch (error) {
-                            console.error('Reconnect error:', error);
-                        }
-                    }
+                    console.log(
+                        'WhatsApp connection closed. Check connection logs.'
+                    );
                 }
             }
         });
 
+        // ========================================
+        // GENERATE PAIRING CODE
+        // ========================================
 
-        // ====================================
-        // REQUEST PAIRING CODE
-        // ====================================
+        if (state.creds.registered) {
+            socket.end(undefined);
 
-        if (!state.creds.registered) {
-            await delay(3000);
+            await removeFile(dirs);
 
-            try {
-                let code = await socket.requestPairingCode(num);
-
-                code = code?.match(/.{1,4}/g)?.join('-') || code;
-
-                console.log({
-                    number: num,
-                    code,
-                    session: sessionId
-                });
-
-                if (!res.headersSent) {
-                    return res.status(200).json({
-                        code
-                    });
-                }
-
-            } catch (error) {
-                console.error('Pairing code error:', error);
-
-                if (!res.headersSent) {
-                    return res.status(503).json({
-                        code: error.message || 'Failed to get pairing code.'
-                    });
-                }
-            }
-        } else {
             return res.status(400).json({
                 code: 'This session is already registered.'
             });
         }
-    }
 
+        await delay(3000);
 
-    // ========================================
-    // START SESSION
-    // ========================================
+        const pairingCode = await socket.requestPairingCode(num);
 
-    try {
-        if (typeof makeWASocket !== 'function') {
-            throw new Error('Baileys makeWASocket function is unavailable.');
-        }
+        const code = pairingCode
+            ?.match(/.{1,4}/g)
+            ?.join('-') || pairingCode;
 
-        await fs.promises.mkdir(dirs, {
-            recursive: true
+        console.log('ECHO PAIRING CODE GENERATED');
+
+        console.log({
+            number: num,
+            code,
+            session: sessionId
         });
 
-        await initiateSession();
+        if (!res.headersSent) {
+            return res.status(200).json({
+                code
+            });
+        }
 
     } catch (error) {
-        console.error('ECHO INITIALIZATION ERROR:', error.stack || error);
+        console.error(
+            'ECHO PAIRING ERROR:',
+            error.stack || error
+        );
 
         if (socket) {
             try {
@@ -304,15 +303,17 @@ router.get('/', async (req, res) => {
             }
         }
 
-        await removeFile(dirs);
+        if (dirs) {
+            await removeFile(dirs);
+        }
 
         if (!res.headersSent) {
             return res.status(500).json({
-                code: error.message || 'Echo initialization failed.'
+                code: error.message || 'Echo pairing failed.'
             });
         }
     }
 });
 
 module.exports = router;
-            
+        
