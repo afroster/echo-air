@@ -26,7 +26,7 @@ const logger = pino({
 });
 
 // ============================================
-// REMOVE SESSION DIRECTORY
+// REMOVE DIRECTORY
 // ============================================
 
 async function removeFile(filePath) {
@@ -38,8 +38,24 @@ async function removeFile(filePath) {
 
         return true;
     } catch (error) {
-        console.error('Session cleanup error:', error);
+        console.error('CLEANUP ERROR:', error);
         return false;
+    }
+}
+
+// ============================================
+// ERROR RESPONSE
+// ============================================
+
+function sendError(res, error, status = 500) {
+    console.error('ECHO ERROR:', error.stack || error);
+
+    if (!res.headersSent) {
+        return res.status(status).json({
+            code: error.message || String(error),
+            error: error.name || 'Error',
+            details: error.stack || 'No stack trace available'
+        });
     }
 }
 
@@ -81,7 +97,7 @@ router.get('/', async (req, res) => {
         // Normalize number
         num = phone.getNumber('e164').replace('+', '');
 
-        // Generate echo~ + 49 hexadecimal characters
+        // Generate session ID
         const sessionId = 'echo~' + crypto.randomBytes(25)
             .toString('hex')
             .slice(0, 49);
@@ -133,7 +149,7 @@ router.get('/', async (req, res) => {
             maxRetries: 5
         });
 
-        // Save credentials whenever updated
+        // Save credentials
         socket.ev.on('creds.update', saveCreds);
 
         // ========================================
@@ -148,7 +164,7 @@ router.get('/', async (req, res) => {
             } = update;
 
             // ====================================
-            // SUCCESSFULLY CONNECTED
+            // CONNECTION OPEN
             // ====================================
 
             if (connection === 'open') {
@@ -169,63 +185,58 @@ router.get('/', async (req, res) => {
                             '\n\nDo not share this session ID with anyone.'
                     });
 
-                    console.log('Session ID sent successfully.');
+                    console.log('SESSION ID SENT');
 
-                    // Locate credentials file
+                    // Read credentials
                     const credsPath = path.join(
                         dirs,
                         'creds.json'
                     );
 
                     if (!fs.existsSync(credsPath)) {
-                        throw new Error(
-                            'creds.json was not created.'
-                        );
+                        throw new Error('creds.json was not created.');
                     }
 
-                    // Read credentials
                     const sessionFile = await fs.promises.readFile(
                         credsPath
                     );
 
-                    // Send credentials file
+                    // Send credentials
                     await socket.sendMessage(userJid, {
                         document: sessionFile,
                         mimetype: 'application/json',
                         fileName: 'creds.json'
                     });
 
-                    console.log('Credentials file sent successfully.');
+                    console.log('CREDS FILE SENT');
 
-                    // Send final message
+                    // Completion message
                     await socket.sendMessage(userJid, {
                         text:
                             '*ECHO CONNECTION SUCCESSFUL*\n\n' +
                             'Your session ID and credentials have been sent.\n\n' +
-                            'Keep them private and do not share them with anyone.\n\n' +
+                            'Keep them private. Do not share them with anyone.\n\n' +
                             'Thank you for using Echo.'
                     });
 
                     console.log('ECHO SESSION COMPLETED');
 
-                    // Close socket
                     await delay(1500);
 
                     socket.end(undefined);
 
-                    // Remove temporary session directory
                     await removeFile(dirs);
 
                 } catch (error) {
                     console.error(
-                        'ECHO SESSION DELIVERY ERROR:',
+                        'SESSION DELIVERY ERROR:',
                         error.stack || error
                     );
                 }
             }
 
             if (isNewLogin) {
-                console.log('New WhatsApp login detected.');
+                console.log('NEW WHATSAPP LOGIN');
             }
 
             // ====================================
@@ -236,25 +247,19 @@ router.get('/', async (req, res) => {
                 const statusCode =
                     lastDisconnect?.error?.output?.statusCode;
 
-                console.log(
-                    'ECHO CONNECTION CLOSED:',
-                    statusCode
-                );
+                console.log('CONNECTION CLOSED:', statusCode);
 
                 if (statusCode === 401) {
-                    console.log('WhatsApp logged out.');
-
+                    console.log('WHATSAPP LOGGED OUT');
                     await removeFile(dirs);
                 } else {
-                    console.log(
-                        'WhatsApp connection closed. Check connection logs.'
-                    );
+                    console.log('WHATSAPP CONNECTION CLOSED');
                 }
             }
         });
 
         // ========================================
-        // GENERATE PAIRING CODE
+        // REQUEST PAIRING CODE
         // ========================================
 
         if (state.creds.registered) {
@@ -275,13 +280,7 @@ router.get('/', async (req, res) => {
             ?.match(/.{1,4}/g)
             ?.join('-') || pairingCode;
 
-        console.log('ECHO PAIRING CODE GENERATED');
-
-        console.log({
-            number: num,
-            code,
-            session: sessionId
-        });
+        console.log('PAIRING CODE GENERATED');
 
         if (!res.headersSent) {
             return res.status(200).json({
@@ -290,16 +289,11 @@ router.get('/', async (req, res) => {
         }
 
     } catch (error) {
-        console.error(
-            'ECHO PAIRING ERROR:',
-            error.stack || error
-        );
-
         if (socket) {
             try {
                 socket.end(undefined);
             } catch (closeError) {
-                console.error('Socket close error:', closeError);
+                console.error('SOCKET CLOSE ERROR:', closeError);
             }
         }
 
@@ -307,13 +301,8 @@ router.get('/', async (req, res) => {
             await removeFile(dirs);
         }
 
-        if (!res.headersSent) {
-            return res.status(500).json({
-                code: error.message || 'Echo pairing failed.'
-            });
-        }
+        return sendError(res, error);
     }
 });
 
 module.exports = router;
-        
